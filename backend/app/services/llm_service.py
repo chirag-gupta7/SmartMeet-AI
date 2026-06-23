@@ -1,7 +1,7 @@
 import json
 import logging
-import os
-from typing import Tuple
+from functools import lru_cache
+from typing import Tuple, Optional
 
 from flask import current_app
 from huggingface_hub import InferenceClient
@@ -24,35 +24,51 @@ SYSTEM_PROMPT = (
 )
 
 
+# Cache for the HuggingFace InferenceClient instance
+_hf_client: Optional[InferenceClient] = None
+
+
 def _get_client():
+    global _hf_client
+    if _hf_client is not None:
+        return _hf_client
+
     api_key = current_app.config.get("HUGGINGFACE_API_KEY")
     if not api_key:
         logger.info("HUGGINGFACE_API_KEY not configured; skipping LLM call")
         return None
-    return InferenceClient(token=api_key)
+    _hf_client = InferenceClient(token=api_key)
+    return _hf_client
 
 
-def generate_action_reply(user_text: str) -> Tuple[str, str]:
-    client = _get_client()
-    if not client:
-        return "general_response", "AI is not configured."
-
-    # Construct messages for Chat API
+@lru_cache(maxsize=100)
+def _memoized_generate_action_reply(user_text: str, api_key: str) -> str:
+    """
+    Perform the actual LLM API call and cache results.
+    Returns the raw string content from the LLM.
+    """
+    client = InferenceClient(token=api_key)
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": user_text},
     ]
+    response = client.chat_completion(
+        model=HF_MODEL,
+        messages=messages,
+        max_tokens=150,
+        temperature=0.3,
+    )
+    return response.choices[0].message.content
+
+
+def generate_action_reply(user_text: str) -> Tuple[str, str]:
+    api_key = current_app.config.get("HUGGINGFACE_API_KEY")
+    if not api_key:
+        return "general_response", "AI is not configured."
 
     try:
-        response = client.chat_completion(
-            model=HF_MODEL,
-            messages=messages,
-            max_tokens=150,
-            temperature=0.3,
-        )
-
-        # Extract the content from the response object
-        content = response.choices[0].message.content
+        # Use memoized helper to avoid redundant LLM calls for same transcript
+        content = _memoized_generate_action_reply(user_text, api_key)
 
         # Clean up potential markdown formatting (```json ... ```)
         if "```" in content:
