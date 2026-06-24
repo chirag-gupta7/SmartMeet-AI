@@ -1,5 +1,6 @@
 import base64
 import logging
+from functools import lru_cache
 from typing import Optional
 
 from flask import current_app
@@ -8,28 +9,28 @@ from elevenlabs import ElevenLabs
 logger = logging.getLogger(__name__)
 
 
+@lru_cache(maxsize=1)
+def _get_cached_client(api_key: str) -> ElevenLabs:
+    """Memoize the ElevenLabs client to avoid repeated initialization."""
+    return ElevenLabs(api_key=api_key)
+
+
 def _get_client() -> Optional[ElevenLabs]:
     api_key = current_app.config.get("ELEVENLABS_API_KEY")
     if not api_key:
         logger.info("ELEVENLABS_API_KEY not configured; skipping TTS")
         return None
     try:
-        return ElevenLabs(api_key=api_key)
+        return _get_cached_client(api_key)
     except Exception as exc:  # pylint: disable=broad-except
         logger.warning("Failed to init ElevenLabs client: %s", exc)
         return None
 
 
-def synthesize_speech(text: str) -> Optional[str]:
-    """Convert text to base64-encoded audio using ElevenLabs."""
-    if not text:
-        return None
-
-    client = _get_client()
-    if not client:
-        return None
-
-    voice_id = current_app.config.get("ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB")
+@lru_cache(maxsize=64)
+def _synthesize_speech_cached(text: str, api_key: str, voice_id: str) -> str:
+    """Internal cached logic for text-to-speech synthesis."""
+    client = _get_cached_client(api_key)
 
     try:
         audio_stream = client.text_to_speech.convert(
@@ -39,9 +40,29 @@ def synthesize_speech(text: str) -> Optional[str]:
         )
         audio_bytes = b"".join(audio_stream)
         return base64.b64encode(audio_bytes).decode("utf-8")
-    except Exception as exc:  # pylint: disable=broad-except
-        # Return None so callers can still show text; log for visibility.
+    except Exception as exc:
+        # We don't want to cache failure states
         logger.warning("ElevenLabs synthesis failed: %s", exc)
+        raise exc
+
+
+def synthesize_speech(text: str) -> Optional[str]:
+    """Convert text to base64-encoded audio using ElevenLabs (cached)."""
+    if not text:
+        return None
+
+    api_key = current_app.config.get("ELEVENLABS_API_KEY")
+    if not api_key:
+        return None
+
+    voice_id = current_app.config.get(
+        "ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB"
+    )
+
+    try:
+        return _synthesize_speech_cached(text, api_key, voice_id)
+    except Exception:
+        # Return None so callers can still show text; log for visibility.
         return None
 
 
