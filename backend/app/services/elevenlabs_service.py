@@ -1,6 +1,7 @@
 import base64
 import logging
 from typing import Optional
+from functools import lru_cache
 
 from flask import current_app
 from elevenlabs import ElevenLabs
@@ -8,8 +9,8 @@ from elevenlabs import ElevenLabs
 logger = logging.getLogger(__name__)
 
 
-def _get_client() -> Optional[ElevenLabs]:
-    api_key = current_app.config.get("ELEVENLABS_API_KEY")
+@lru_cache(maxsize=1)
+def _get_client(api_key: str) -> Optional[ElevenLabs]:
     if not api_key:
         logger.info("ELEVENLABS_API_KEY not configured; skipping TTS")
         return None
@@ -25,11 +26,25 @@ def synthesize_speech(text: str) -> Optional[str]:
     if not text:
         return None
 
-    client = _get_client()
+    api_key = current_app.config.get("ELEVENLABS_API_KEY")
+    voice_id = current_app.config.get(
+        "ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB"
+    )
+
+    return _synthesize_speech_cached(text, api_key, voice_id)
+
+
+@lru_cache(maxsize=100)
+def _synthesize_speech_cached(text: str, api_key: str,
+                              voice_id: str) -> Optional[str]:
+    """
+    Actual implementation of TTS with memoization.
+    api_key and voice_id are passed to ensure cache invalidation if
+    config changes.
+    """
+    client = _get_client(api_key)
     if not client:
         return None
-
-    voice_id = current_app.config.get("ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB")
 
     try:
         audio_stream = client.text_to_speech.convert(
