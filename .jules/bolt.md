@@ -1,0 +1,3 @@
+## 2025-05-14 - Optimized External API Services
+**Learning:** External API clients (ElevenLabs, HuggingFace) were being re-instantiated on every request, and identical text was being re-processed, causing unnecessary latency and overhead. Using `lru_cache` on a helper function that takes configuration (API keys) as arguments allows for safe memoization that respects configuration changes.
+**Action:** Always consider memoizing external API calls and client initializations, especially for expensive operations like LLM generation and TTS. Ensure cache keys include configuration values to avoid stale caches.
