@@ -1,0 +1,3 @@
+## 2025-05-22 - [AI Service Optimization]
+**Learning:** External AI services (LLM and TTS) were being re-instantiated and called on every request, even for identical inputs, leading to unnecessary latency and potential cost. Using `lru_cache` significantly reduces latency for repeated phrases (like greetings or common commands).
+**Action:** Always implement client instance caching and result memoization for external AI APIs. Ensure that failure states are NOT cached by raising exceptions in the memoized function and catching them in a wrapper. Pass configuration values as arguments to the memoized function to handle dynamic configuration changes correctly.
