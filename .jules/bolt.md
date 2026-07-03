@@ -1,0 +1,3 @@
+## 2024-07-03 - Client Caching and Memoization in AI Services
+**Learning:** Initializing third-party API clients (like `ElevenLabs` or `huggingface_hub.InferenceClient`) on every request adds significant overhead. Additionally, redundant API calls for identical inputs (e.g., standard greetings) increase latency and cost.
+**Action:** Use global dictionaries to cache client instances by API key. Implement `@functools.lru_cache` for functions that perform external API calls, ensuring configuration values (API keys, voice IDs) are passed as arguments to maintain cache validity across configuration changes. Always wrap memoized calls in a try-except block to avoid caching transient error states.
