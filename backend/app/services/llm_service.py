@@ -1,7 +1,7 @@
 import json
 import logging
-import os
-from typing import Tuple
+from functools import lru_cache
+from typing import Optional, Tuple
 
 from flask import current_app
 from huggingface_hub import InferenceClient
@@ -16,26 +16,36 @@ SYSTEM_PROMPT = (
     "Your goal is to classify user intent into JSON actions."
     " Respond ONLY in valid JSON format with keys: 'action' and 'reply'.\n\n"
     "RULES:\n"
-    "1. If the user mentions 'meet', 'book', 'schedule', 'appointment', or 'calendar', classify as 'schedule_meeting'.\n"
+    "1. If the user mentions 'meet', 'book', 'schedule', 'appointment', "
+    "or 'calendar', classify as 'schedule_meeting'.\n"
     "2. If the user asks for weather, classify as 'weather'.\n"
     "3. Otherwise, use 'general_response'.\n"
     "4. 'reply' should be a short, friendly response spoken to the user.\n\n"
-    "Valid 'action' values: ['schedule_meeting', 'weather', 'general_response']"
+    "Valid 'action' values: "
+    "['schedule_meeting', 'weather', 'general_response']"
 )
 
 
-def _get_client():
+@lru_cache(maxsize=1)
+def _get_cached_client(api_key: str) -> InferenceClient:
+    """Cache the InferenceClient instance."""
+    return InferenceClient(token=api_key)
+
+
+def _get_client() -> Optional[InferenceClient]:
     api_key = current_app.config.get("HUGGINGFACE_API_KEY")
     if not api_key:
         logger.info("HUGGINGFACE_API_KEY not configured; skipping LLM call")
         return None
-    return InferenceClient(token=api_key)
+    return _get_cached_client(api_key)
 
 
-def generate_action_reply(user_text: str) -> Tuple[str, str]:
-    client = _get_client()
-    if not client:
-        return "general_response", "AI is not configured."
+@lru_cache(maxsize=100)
+def _generate_action_reply_memoized(
+    user_text: str, api_key: str
+) -> Tuple[str, str]:
+    """Memoize the LLM response to avoid redundant API calls."""
+    client = _get_cached_client(api_key)
 
     # Construct messages for Chat API
     messages = [
@@ -62,7 +72,8 @@ def generate_action_reply(user_text: str) -> Tuple[str, str]:
 
     except Exception as exc:
         logger.warning("Hugging Face generation failed: %s", exc)
-        return "general_response", "I'm having trouble connecting to the brain."
+        # Do not cache failure states
+        raise exc
 
     # Parse JSON
     action = "general_response"
@@ -78,3 +89,21 @@ def generate_action_reply(user_text: str) -> Tuple[str, str]:
         reply = content  # Fallback: just speak the raw text
 
     return action, reply
+
+
+def generate_action_reply(user_text: str) -> Tuple[str, str]:
+    """
+    Generate an action and reply based on user text.
+    Uses memoization to avoid redundant calls.
+    """
+    api_key = current_app.config.get("HUGGINGFACE_API_KEY")
+    if not api_key:
+        return "general_response", "AI is not configured."
+
+    try:
+        return _generate_action_reply_memoized(user_text, api_key)
+    except Exception:
+        return (
+            "general_response",
+            "I'm having trouble connecting to the brain."
+        )
