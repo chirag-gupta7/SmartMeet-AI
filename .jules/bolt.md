@@ -1,0 +1,3 @@
+## 2025-05-15 - Optimizing AI Service Integrations
+**Learning:** When implementing memoization (e.g., `lru_cache`) for external API calls, caching failure states can lead to persistent errors. Additionally, `lru_cache` doesn't automatically handle changes in external state like application configuration.
+**Action:** Always raise exceptions in memoized functions and catch them in a wrapper to avoid caching errors. Pass configuration values (like API keys) as arguments to the memoized function to ensure the cache invalidates if the configuration changes. Use a singleton pattern for expensive client objects to reduce instantiation overhead.
