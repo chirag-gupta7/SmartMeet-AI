@@ -1,0 +1,3 @@
+## 2025-05-14 - LLM Service Optimization Patterns
+**Learning:** In Flask services interacting with external LLM APIs (like Hugging Face), instantiating a client per request introduces unnecessary overhead. Additionally, identical user prompts result in redundant API calls, increasing latency and cost.
+**Action:** Implement a singleton client pattern that re-initializes only when the configuration (e.g., API key) changes. Use `functools.lru_cache` for response memoization, ensuring the cache key includes the API key to handle config updates. Always separate the memoized API call from the parsing logic to avoid caching transient failures.
