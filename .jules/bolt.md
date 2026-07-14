@@ -1,0 +1,3 @@
+## 2025-05-15 - [API Client Singleton & Memoization]
+**Learning:** External API clients (Hugging Face, ElevenLabs) in a Flask app should be treated as singletons to reduce instantiation overhead. However, they must be re-initialized if configuration (API keys) changes. Memoization with `lru_cache` for expensive API calls is highly effective but must include the API key and other relevant configuration in the cache key to prevent stale results after config updates.
+**Action:** Always implement a `_get_client()` helper that tracks the `_last_api_key` and use internal memoized helpers that accept the key as a parameter.
