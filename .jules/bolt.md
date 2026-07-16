@@ -1,0 +1,3 @@
+## 2026-07-16 - Database Index Optimization for Meeting Retrievals
+**Learning:** Frequent filtering and ordering operations on unindexed foreign keys (`owner_id`) and temporal columns (`start_time`) in relational databases like SQLite and PostgreSQL lead to slow sequential full-table scans. Introducing explicit database indices avoids full table scans, reducing lookup times from O(N) to O(log N).
+**Action:** Always identify frequently queried columns (such as foreign keys and filter/sorting fields) during the data modeling phase and apply `index=True` directly in the SQLAlchemy schema definition. Use database migration tools (like Flask-Migrate/Alembic) to synchronize the physical database schema and verify indexes via database schema inspection.
