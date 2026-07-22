@@ -54,11 +54,16 @@ class Meeting(BaseModel, db.Model):
 
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
-    start_time = db.Column(db.DateTime, nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False, index=True)
     duration_minutes = db.Column(db.Integer, nullable=False, default=30)
     extra_data = db.Column(JSON, nullable=True)
 
-    owner_id = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=False)
+    owner_id = db.Column(
+        db.String(36),
+        db.ForeignKey("users.id"),
+        nullable=False,
+        index=True,
+    )
     owner = db.relationship("User", back_populates="meetings")
 
     def to_dict(self) -> dict:
