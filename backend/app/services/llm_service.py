@@ -1,7 +1,7 @@
 import json
 import logging
-import os
-from typing import Tuple
+from functools import lru_cache
+from typing import Optional, Tuple
 
 from flask import current_app
 from huggingface_hub import InferenceClient
@@ -16,43 +16,67 @@ SYSTEM_PROMPT = (
     "Your goal is to classify user intent into JSON actions."
     " Respond ONLY in valid JSON format with keys: 'action' and 'reply'.\n\n"
     "RULES:\n"
-    "1. If the user mentions 'meet', 'book', 'schedule', 'appointment', or 'calendar', classify as 'schedule_meeting'.\n"
+    "1. If the user mentions 'meet', 'book', 'schedule', 'appointment', "
+    "or 'calendar', classify as 'schedule_meeting'.\n"
     "2. If the user asks for weather, classify as 'weather'.\n"
     "3. Otherwise, use 'general_response'.\n"
     "4. 'reply' should be a short, friendly response spoken to the user.\n\n"
-    "Valid 'action' values: ['schedule_meeting', 'weather', 'general_response']"
+    "Valid 'action' values: ['schedule_meeting', 'weather', "
+    "'general_response']"
 )
 
+_client = None
+_last_api_key = None
 
-def _get_client():
-    api_key = current_app.config.get("HUGGINGFACE_API_KEY")
+
+def _get_client(api_key: Optional[str] = None) -> Optional[InferenceClient]:
+    """Retrieve or initialize the InferenceClient singleton client."""
+    global _client, _last_api_key
+    if not api_key:
+        api_key = current_app.config.get("HUGGINGFACE_API_KEY")
     if not api_key:
         logger.info("HUGGINGFACE_API_KEY not configured; skipping LLM call")
         return None
-    return InferenceClient(token=api_key)
+
+    if _client is None or api_key != _last_api_key:
+        try:
+            _client = InferenceClient(token=api_key)
+            _last_api_key = api_key
+            logger.info("Initialized new InferenceClient singleton client")
+        except Exception as exc:
+            logger.warning("Failed to init InferenceClient client: %s", exc)
+            return None
+    return _client
 
 
-def generate_action_reply(user_text: str) -> Tuple[str, str]:
-    client = _get_client()
+@lru_cache(maxsize=128)
+def _get_llm_response_memoized(user_text: str, api_key: str) -> str:
+    """Helper for memoizing LLM completions. Raises exceptions on failure."""
+    client = _get_client(api_key)
     if not client:
-        return "general_response", "AI is not configured."
+        raise ValueError("InferenceClient could not be initialized")
 
-    # Construct messages for Chat API
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": user_text},
     ]
 
-    try:
-        response = client.chat_completion(
-            model=HF_MODEL,
-            messages=messages,
-            max_tokens=150,
-            temperature=0.3,
-        )
+    response = client.chat_completion(
+        model=HF_MODEL,
+        messages=messages,
+        max_tokens=150,
+        temperature=0.3,
+    )
+    return response.choices[0].message.content
 
-        # Extract the content from the response object
-        content = response.choices[0].message.content
+
+def generate_action_reply(user_text: str) -> Tuple[str, str]:
+    api_key = current_app.config.get("HUGGINGFACE_API_KEY")
+    if not api_key:
+        return "general_response", "AI is not configured."
+
+    try:
+        content = _get_llm_response_memoized(user_text, api_key)
 
         # Clean up potential markdown formatting (```json ... ```)
         if "```" in content:
@@ -62,7 +86,10 @@ def generate_action_reply(user_text: str) -> Tuple[str, str]:
 
     except Exception as exc:
         logger.warning("Hugging Face generation failed: %s", exc)
-        return "general_response", "I'm having trouble connecting to the brain."
+        return (
+            "general_response",
+            "I'm having trouble connecting to the brain.",
+        )
 
     # Parse JSON
     action = "general_response"
