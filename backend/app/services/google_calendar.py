@@ -191,11 +191,12 @@ def list_upcoming_events_for_user(
     return [normalize_event(evt) for evt in result.get("items", [])]
 
 
-def create_quick_event_for_user(user_id: str, text: str) -> Dict[str, Any]:
+def create_quick_event_for_user(user_id: str, text: str, timezone_name: Optional[str] = None) -> Dict[str, Any]:
     """
     Create an event from natural language via quickAdd, falling back to the
     manual parser when Google rejects the text. Mirrors the result shape of
-    the old shared-credential flow.
+    the old shared-credential flow. ``timezone_name`` is the user's IANA
+    timezone used to interpret natural-language dates in the fallback path.
     """
     service = get_service_for_user(user_id)
     if service is None:
@@ -209,7 +210,9 @@ def create_quick_event_for_user(user_id: str, text: str) -> Dict[str, Any]:
     except HttpError as exc:
         if exc.resp.status == 400:
             logger.info("quickAdd failed (%s); falling back to manual parse", exc)
-            return create_event_manual_parse(text, lambda: get_service_for_user(user_id))
+            return create_event_manual_parse(
+                text, lambda: get_service_for_user(user_id), timezone_name=timezone_name
+            )
         raise
 
     norm = normalize_event(created)

@@ -1,18 +1,22 @@
 import os
 import logging
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from googleapiclient.errors import HttpError
 
-from .datetime_parser import parse_natural_language_datetime
+from .datetime_parser import parse_natural_language_datetime, resolve_timezone
 
 logger = logging.getLogger(__name__)
 
-def create_event_manual_parse(conversation_text, get_calendar_service):
+def create_event_manual_parse(conversation_text, get_calendar_service, timezone_name=None):
     """
     Manually parses conversation text to create a calendar event.
     This is a fallback if quickAdd fails.
     Returns a structured dictionary with success status and event details.
+
+    ``timezone_name`` is the user's IANA timezone (e.g. "Asia/Kolkata");
+    relative dates/times are interpreted in it and the Google payload is
+    sent with a UTC-converted dateTime plus the user's timezone label.
     """
     logger.info(f"Attempting manual parse for event: {conversation_text}")
     summary = "Untitled Event"
@@ -33,8 +37,9 @@ def create_event_manual_parse(conversation_text, get_calendar_service):
         if len(summary) > 100: # Prevent very long summaries
             summary = summary[:100] + "..."
 
-    # Try to parse date/time from the text using the enhanced function
-    datetime_result = parse_natural_language_datetime(conversation_text)
+    # Try to parse date/time from the text using the enhanced function,
+    # interpreted in the user's timezone.
+    datetime_result = parse_natural_language_datetime(conversation_text, timezone_name)
     
     if not datetime_result.get('success', True):  # Default to True if 'success' key isn't present
         logger.warning(f"Failed to parse date/time information: {datetime_result.get('error', 'Unknown error')}")
@@ -82,23 +87,33 @@ def create_event_manual_parse(conversation_text, get_calendar_service):
         else:
             # Create timed event
             start_time = datetime_result.get('start_datetime')
-            
+
             # If end time is specified in the datetime_result, use it
             # Otherwise default to 1 hour after start time
             if 'end_datetime' in datetime_result:
                 end_time = datetime_result.get('end_datetime')
             else:
                 end_time = start_time + timedelta(hours=1)
-            
+
+            tz = resolve_timezone(timezone_name)
+            tz_name = getattr(tz, 'key', 'UTC')
+
+            # Guard against naive datetimes slipping through: interpret
+            # them in the user's timezone rather than the server's.
+            if start_time.tzinfo is None:
+                start_time = start_time.replace(tzinfo=tz)
+            if end_time.tzinfo is None:
+                end_time = end_time.replace(tzinfo=tz)
+
             event = {
                 'summary': summary,
                 'start': {
-                    'dateTime': start_time.isoformat(),
-                    'timeZone': 'UTC',
+                    'dateTime': start_time.astimezone(timezone.utc).isoformat(),
+                    'timeZone': tz_name,
                 },
                 'end': {
-                    'dateTime': end_time.isoformat(),
-                    'timeZone': 'UTC',
+                    'dateTime': end_time.astimezone(timezone.utc).isoformat(),
+                    'timeZone': tz_name,
                 },
                 'description': conversation_text
             }

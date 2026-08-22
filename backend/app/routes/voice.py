@@ -1,6 +1,8 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
+from ..extensions import db
+from ..models import User
 from ..services.elevenlabs_service import synthesize_speech
 from ..services.llm_service import generate_action_reply
 from ..services.command_processor import VoiceCommandProcessor
@@ -39,7 +41,11 @@ def process_voice():
         return jsonify({"success": False, "message": "Transcript is required"}), 400
 
     user_id = get_jwt_identity()
-    processor = VoiceCommandProcessor(user_id=user_id)
+    user = db.session.get(User, user_id)
+    processor = VoiceCommandProcessor(
+        user_id=user_id,
+        timezone_name=user.timezone if user else None,
+    )
 
     action, reply = generate_action_reply(transcript)
     command_result = None

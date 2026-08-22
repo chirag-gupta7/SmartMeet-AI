@@ -1,19 +1,50 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 import re
+from zoneinfo import ZoneInfo
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 import logging
 
 logger = logging.getLogger(__name__)
 
-def parse_natural_language_datetime(text):
+DEFAULT_TIMEZONE = "UTC"
+
+
+def _fallback_utc():
     """
-    Parse natural language datetime expressions.
-    Returns a dictionary with the parsing results including success status,
-    extracted date/time, and whether it's an all-day event.
+    Return a UTC zone even when no IANA database is installed
+    (e.g. bare Windows hosts); datetime.timezone.utc needs no data files.
+    """
+    try:
+        return ZoneInfo(DEFAULT_TIMEZONE)
+    except Exception:
+        return dt_timezone.utc
+
+
+def resolve_timezone(timezone_name=None):
+    """
+    Resolve an IANA timezone name (e.g. "Asia/Kolkata") to a ZoneInfo,
+    falling back to UTC when the name is missing or unknown.
+    """
+    if not timezone_name:
+        return _fallback_utc()
+    try:
+        return ZoneInfo(str(timezone_name))
+    except Exception as exc:  # invalid/unknown IANA name or missing tz database
+        logger.warning("Unknown timezone %r (%s); falling back to %s", timezone_name, exc, DEFAULT_TIMEZONE)
+        return _fallback_utc()
+
+
+def parse_natural_language_datetime(text, timezone_name=None):
+    """
+    Parse natural language datetime expressions relative to the given
+    IANA timezone (defaults to UTC). Returns a dictionary with the parsing
+    results including success status, extracted timezone-aware date/time,
+    and whether it's an all-day event.
     """
     text = text.lower().strip()
-    now = datetime.now()
+    tzinfo_obj = resolve_timezone(timezone_name)
+    now = datetime.now(tzinfo_obj)
     is_all_day = False
     
     # Check for "all day" markers
@@ -73,6 +104,10 @@ def parse_natural_language_datetime(text):
     else:
         try:
             base_date = parser.parse(text, fuzzy=True)
+            if base_date.tzinfo is None:
+                # dateutil returns naive datetimes; anchor them to the
+                # requested timezone so downstream math stays consistent.
+                base_date = base_date.replace(tzinfo=tzinfo_obj)
         except Exception as e:
             logger.warning(f"Failed to parse date with dateutil: {e}")
             base_date = now
@@ -213,7 +248,8 @@ def parse_natural_language_datetime(text):
     # Build and return the result structure
     result = {
         'success': True,
-        'is_all_day': is_all_day
+        'is_all_day': is_all_day,
+        'timezone': getattr(tzinfo_obj, 'key', DEFAULT_TIMEZONE)
     }
     
     if is_all_day:

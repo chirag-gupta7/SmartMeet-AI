@@ -58,8 +58,11 @@ class VoiceCommandProcessor:
     Enhanced voice command processor with real API integrations.
     Supports weather, news, reminders, timers, notes, and more.
     """
-    def __init__(self, user_id: Optional[uuid.UUID] = None): # user_id is now a UUID object
+    def __init__(self, user_id: Optional[uuid.UUID] = None, timezone_name: Optional[str] = None):
+        # user_id is a UUID object; timezone_name is the user's IANA timezone
+        # (e.g. "Asia/Kolkata") used to interpret natural-language dates.
         self.user_id = user_id
+        self.timezone_name = timezone_name
         self.commands = {
             'weather': self.get_weather,
             'news': self.get_news,
@@ -756,7 +759,9 @@ class VoiceCommandProcessor:
         try:
             from .google_calendar import create_quick_event_for_user
 
-            result = create_quick_event_for_user(self.user_id, event_text)
+            result = create_quick_event_for_user(
+                self.user_id, event_text, timezone_name=self.timezone_name
+            )
 
             if result and result.get('success'):
                 event = result.get('event', {})
