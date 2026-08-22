@@ -3,16 +3,27 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta
 
-from sqlalchemy import Enum, func, JSON
+from sqlalchemy import Enum, JSON
 
 from .extensions import bcrypt, db
 
 
 class BaseModel:
-    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    id = db.Column(
+        db.String(36),
+        primary_key=True,
+        default=lambda: str(uuid.uuid4()),
+    )
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+    )
     updated_at = db.Column(
-        db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
     )
 
 
@@ -29,12 +40,20 @@ class User(BaseModel, db.Model):
     )
     google_credentials = db.Column(JSON, nullable=True)
 
-    meetings = db.relationship("Meeting", back_populates="owner", cascade="all, delete")
-    notes = db.relationship("Note", back_populates="owner", cascade="all, delete")
-    logs = db.relationship("Log", back_populates="user", cascade="all, delete")
+    meetings = db.relationship(
+        "Meeting", back_populates="owner", cascade="all, delete"
+    )
+    notes = db.relationship(
+        "Note", back_populates="owner", cascade="all, delete"
+    )
+    logs = db.relationship(
+        "Log", back_populates="user", cascade="all, delete"
+    )
 
     def set_password(self, password: str) -> None:
-        self.password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
+        self.password_hash = (
+            bcrypt.generate_password_hash(password).decode("utf-8")
+        )
 
     def check_password(self, password: str) -> bool:
         return bcrypt.check_password_hash(self.password_hash, password)
@@ -54,11 +73,16 @@ class Meeting(BaseModel, db.Model):
 
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
-    start_time = db.Column(db.DateTime, nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False, index=True)
     duration_minutes = db.Column(db.Integer, nullable=False, default=30)
     extra_data = db.Column(JSON, nullable=True)
 
-    owner_id = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=False)
+    owner_id = db.Column(
+        db.String(36),
+        db.ForeignKey("users.id"),
+        nullable=False,
+        index=True,
+    )
     owner = db.relationship("User", back_populates="meetings")
 
     def to_dict(self) -> dict:
@@ -80,7 +104,9 @@ class Note(BaseModel, db.Model):
     __tablename__ = "notes"
 
     content = db.Column(db.Text, nullable=False)
-    user_id = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(
+        db.String(36), db.ForeignKey("users.id"), nullable=False
+    )
     owner = db.relationship("User", back_populates="notes")
 
     def to_dict(self) -> dict:
@@ -99,7 +125,9 @@ class Log(BaseModel, db.Model):
     message = db.Column(db.Text, nullable=False)
     source = db.Column(db.String(120), nullable=True)
     extra_data = db.Column(JSON, nullable=True)
-    user_id = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=True)
+    user_id = db.Column(
+        db.String(36), db.ForeignKey("users.id"), nullable=True
+    )
     user = db.relationship("User", back_populates="logs")
 
     def to_dict(self) -> dict:
