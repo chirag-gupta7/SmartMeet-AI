@@ -57,3 +57,6 @@ token.json
 # Misc
 *.orig
 .cache/
+
+# Graphify regenerable cache
+graphify-out/cache/
