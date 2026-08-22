@@ -95,12 +95,12 @@ def _build_form_sections(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _get_google_access_token() -> str:
-    return (
-        request.headers.get("X-Google-Access-Token")
-        or request.args.get("google_access_token")
-        or (request.get_json(silent=True) or {}).get("google_access_token")
-        or ""
-    )
+    """
+    Read the Google access token from the X-Google-Access-Token header only.
+    Accepting tokens via query string or body risks them leaking into
+    server logs, browser history, and proxies.
+    """
+    return request.headers.get("X-Google-Access-Token") or ""
 
 
 @calendar_bp.get("/events")
