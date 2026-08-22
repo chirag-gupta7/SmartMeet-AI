@@ -3,9 +3,10 @@ import os
 import requests
 import threading
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional
 from flask import current_app, Flask
+from dateutil import parser
 import uuid
 
 from ..extensions import db
@@ -552,29 +553,45 @@ class VoiceCommandProcessor:
         }
             
     # Calendar-related functions
+    def _calendar_not_connected(self) -> Dict[str, Any]:
+        """Standard response when the user has no stored Google credentials."""
+        return {
+            'success': False,
+            'error': 'Google Calendar not connected. Please connect your Google account first.',
+            'user_message': 'Please connect your Google account first so I can access your calendar.'
+        }
+
     def get_next_meeting(self) -> Dict[str, Any]:
-        """Get the next meeting from the calendar."""
+        """Get the next meeting from the user's Google Calendar."""
         logger.info("Fetching next meeting from calendar")
-        
+
+        if not self.user_id:
+            return self._calendar_not_connected()
+
         try:
-            from .google_calendar_integration import get_next_meeting
-                
-            meeting = get_next_meeting()
-            logger.info(f"Retrieved meeting data: {meeting}")
-            
-            if meeting and 'event' in meeting and meeting['event']:
-                event = meeting.get('event', {})
-                start_time = event.get('start_time', 'Unknown time')
-                end_time = event.get('end_time', 'Unknown time')
+            from .google_calendar import list_upcoming_events_for_user
+
+            events = list_upcoming_events_for_user(self.user_id, max_results=1, days_ahead=None)
+
+            if events is None:
+                return self._calendar_not_connected()
+
+            if events:
+                event = events[0]
                 summary = event.get('summary', 'Untitled meeting')
-                location = event.get('location', 'No location specified')
-                
-                formatted_time = meeting.get('formatted_time', start_time)
-                
+                date_str = event.get('date')
+                start_time = event.get('start_time')
+
+                if date_str and start_time:
+                    formatted_time = f"{date_str} at {start_time}"
+                else:
+                    formatted_time = date_str or start_time or 'the scheduled time'
+
                 user_message = f"Your next meeting is '{summary}' at {formatted_time}"
-                if location and location != 'No location specified':
+                location = event.get('location')
+                if location:
                     user_message += f", located at {location}"
-                
+
                 return {
                     'success': True,
                     'data': event,
@@ -586,7 +603,7 @@ class VoiceCommandProcessor:
                     'data': {},
                     'user_message': "You don't have any upcoming meetings on your calendar."
                 }
-                
+
         except Exception as e:
             logger.error(f"Error getting next meeting: {str(e)}")
             return {
@@ -598,25 +615,42 @@ class VoiceCommandProcessor:
     def get_today_events(self) -> Dict[str, Any]:
         """Get today's calendar events."""
         logger.info("Fetching today's calendar events")
-        
+
+        if not self.user_id:
+            return self._calendar_not_connected()
+
         try:
-            from .google_calendar_integration import get_today_schedule
-                
-            result = get_today_schedule()
-            
-            if result and 'events' in result and result['events']:
-                events = result['events']
-                
+            from .google_calendar import list_upcoming_events_for_user
+
+            now = datetime.now(timezone.utc)
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            tomorrow_start = today_start + timedelta(days=1)
+
+            events = list_upcoming_events_for_user(
+                self.user_id,
+                max_results=None,
+                days_ahead=None,
+                time_min=today_start,
+                time_max=tomorrow_start,
+            )
+
+            if events is None:
+                return self._calendar_not_connected()
+
+            if events:
+                def _when(evt: Dict[str, Any]) -> str:
+                    return evt.get('start_time') or 'all day'
+
                 if len(events) == 1:
-                    user_message = f"You have 1 event today: {events[0]['summary']} at {events[0]['start_time']}"
+                    user_message = f"You have 1 event today: {events[0]['summary']} at {_when(events[0])}"
                 else:
                     user_message = f"You have {len(events)} events today. Here are your events:"
                     for i, event in enumerate(events[:5], 1):  # Limit to first 5 events
-                        user_message += f"\n{i}. {event['summary']} at {event['start_time']}"
-                    
+                        user_message += f"\n{i}. {event['summary']} at {_when(event)}"
+
                     if len(events) > 5:
                         user_message += f"\n...and {len(events) - 5} more event(s)."
-                
+
                 return {
                     'success': True,
                     'data': {'events': events},
@@ -628,7 +662,7 @@ class VoiceCommandProcessor:
                     'data': {'events': []},
                     'user_message': "You don't have any events scheduled for today."
                 }
-                
+
         except Exception as e:
             logger.error(f"Error getting today's events: {str(e)}")
             return {
@@ -640,29 +674,33 @@ class VoiceCommandProcessor:
     def get_upcoming_events(self, days=7) -> Dict[str, Any]:
         """Get upcoming calendar events for the next X days."""
         logger.info(f"Fetching upcoming calendar events for the next {days} days")
-        
+
+        if not self.user_id:
+            return self._calendar_not_connected()
+
         try:
             # Convert days parameter to int if it's a string
             if isinstance(days, str):
                 days = int(days)
-                
-            from .google_calendar_integration import get_upcoming_events
-                
-            result = get_upcoming_events(days_ahead=days)
-            
-            if result and 'events' in result and result['events']:
-                events = result['events']
-                
+
+            from .google_calendar import list_upcoming_events_for_user
+
+            events = list_upcoming_events_for_user(self.user_id, max_results=None, days_ahead=days)
+
+            if events is None:
+                return self._calendar_not_connected()
+
+            if events:
                 if len(events) == 1:
-                    user_message = f"You have 1 upcoming event in the next {days} days: {events[0]['summary']} on {events[0]['date']} at {events[0]['start_time']}"
+                    user_message = f"You have 1 upcoming event in the next {days} days: {events[0]['summary']} on {events[0].get('date')} at {events[0].get('start_time')}"
                 else:
                     user_message = f"You have {len(events)} events in the next {days} days. Here are your upcoming events:"
                     for i, event in enumerate(events[:5], 1):  # Limit to first 5 events
-                        user_message += f"\n{i}. {event['summary']} on {event['date']} at {event['start_time']}"
-                    
+                        user_message += f"\n{i}. {event['summary']} on {event.get('date')} at {event.get('start_time')}"
+
                     if len(events) > 5:
                         user_message += f"\n...and {len(events) - 5} more event(s)."
-                
+
                 return {
                     'success': True,
                     'data': {'events': events},
@@ -674,7 +712,7 @@ class VoiceCommandProcessor:
                     'data': {'events': []},
                     'user_message': f"You don't have any events scheduled for the next {days} days."
                 }
-                
+
         except Exception as e:
             logger.error(f"Error getting upcoming events: {str(e)}")
             return {
@@ -686,15 +724,18 @@ class VoiceCommandProcessor:
     def create_calendar_event(self, event_text: str) -> Dict[str, Any]:
         """Create a calendar event from natural language text."""
         logger.info(f"Creating calendar event from: {event_text}")
-        
+
+        if not self.user_id:
+            return self._calendar_not_connected()
+
         try:
-            from .google_calendar_integration import create_event_from_conversation
-                
-            result = create_event_from_conversation(event_text)
-            
+            from .google_calendar import create_quick_event_for_user
+
+            result = create_quick_event_for_user(self.user_id, event_text)
+
             if result and result.get('success'):
                 event = result.get('event', {})
-                
+
                 # Build the base message
                 if 'message' in result:
                     base_message = result.get('message')
@@ -704,10 +745,10 @@ class VoiceCommandProcessor:
                         base_message = f"I've scheduled an all-day event '{event.get('summary')}' on {event.get('date', 'the requested date')}."
                     else:
                         base_message = f"I've scheduled '{event.get('summary')}' on {event.get('date', 'the requested date')} at {event.get('start_time', 'specified time')}."
-                
+
                 # APPEND THE FOLLOW-UP QUESTION
                 user_message = f"{base_message} Is there anything else I can help you with?"
-                
+
                 return {
                     'success': True,
                     'data': event,
@@ -715,16 +756,23 @@ class VoiceCommandProcessor:
                     'htmlLink': event.get('htmlLink', '')
                 }
             else:
-                error_msg = result.get('error', 'Could not parse event details from your request.')
+                error_msg = (result or {}).get('error', 'Could not parse event details from your request.')
+
+                if 'connect' in error_msg.lower() or 'authorization' in error_msg.lower():
+                    return self._calendar_not_connected()
+
                 # Use the message provided by the calendar service if available
-                user_message = result.get('message', f"I couldn't create that calendar event. Please provide more details like date, time, and title.")
-                
+                user_message = (result or {}).get(
+                    'message',
+                    "I couldn't create that calendar event. Please provide more details like date, time, and title."
+                )
+
                 return {
                     'success': False,
                     'error': error_msg,
                     'user_message': user_message
                 }
-                
+
         except Exception as e:
             logger.error(f"Error creating calendar event: {str(e)}")
             return {
@@ -736,15 +784,48 @@ class VoiceCommandProcessor:
     def find_free_time(self, date: str = None) -> Dict[str, Any]:
         """Find free time slots in the calendar."""
         logger.info(f"Finding free time slots in calendar for date: {date or 'today'}")
-        
+
+        if not self.user_id:
+            return self._calendar_not_connected()
+
         try:
-            from .google_calendar_integration import get_free_time_today
-                
-            result = get_free_time_today()  # TODO: Enhance to support specific dates
-            
-            if result and 'free_slots' in result and result['free_slots']:
-                free_slots = result['free_slots']
-                
+            from .google_calendar import query_freebusy_for_user
+
+            now = datetime.now(timezone.utc)
+            start_of_day = now.replace(hour=9, minute=0, second=0, microsecond=0)
+            end_of_day = now.replace(hour=17, minute=0, second=0, microsecond=0)
+
+            busy = query_freebusy_for_user(self.user_id, start_of_day, end_of_day)
+
+            if busy is None:
+                return self._calendar_not_connected()
+
+            free_slots: list = []
+            cursor = start_of_day
+            for block in busy:
+                busy_start = parser.isoparse(block["start"])
+                busy_end = parser.isoparse(block["end"])
+                if cursor < busy_start:
+                    delta = busy_start - cursor
+                    free_slots.append(
+                        {
+                            "start": cursor.strftime("%H:%M"),
+                            "end": busy_start.strftime("%H:%M"),
+                            "duration": int(delta.total_seconds() // 60),
+                        }
+                    )
+                cursor = max(cursor, busy_end)
+            if cursor < end_of_day:
+                delta = end_of_day - cursor
+                free_slots.append(
+                    {
+                        "start": cursor.strftime("%H:%M"),
+                        "end": end_of_day.strftime("%H:%M"),
+                        "duration": int(delta.total_seconds() // 60),
+                    }
+                )
+
+            if free_slots:
                 if len(free_slots) == 1:
                     slot = free_slots[0]
                     user_message = f"You have 1 free time slot today: {slot['start']} to {slot['end']} ({slot['duration']} minutes)"
@@ -752,10 +833,10 @@ class VoiceCommandProcessor:
                     user_message = f"You have {len(free_slots)} free time slots today. Here they are:"
                     for i, slot in enumerate(free_slots[:5], 1):  # Limit to first 5 slots
                         user_message += f"\n{i}. {slot['start']} to {slot['end']} ({slot['duration']} minutes)"
-                    
+
                     if len(free_slots) > 5:
                         user_message += f"\n...and {len(free_slots) - 5} more time slot(s)."
-                
+
                 return {
                     'success': True,
                     'data': {'free_slots': free_slots},
@@ -767,7 +848,7 @@ class VoiceCommandProcessor:
                     'data': {'free_slots': []},
                     'user_message': "I couldn't find any significant free time slots in your calendar today."
                 }
-                
+
         except Exception as e:
             logger.error(f"Error finding free time: {str(e)}")
             return {
@@ -779,28 +860,27 @@ class VoiceCommandProcessor:
     def get_calendar_status(self) -> Dict[str, Any]:
         """Check if the calendar service is connected and working."""
         logger.info("Checking calendar connection status")
-        
+
+        if not self.user_id:
+            return self._calendar_not_connected()
+
         try:
-            from .google_calendar_integration import test_calendar_connection
-                
-            result = test_calendar_connection()
-            
-            if result and result.get('connected'):
-                user_message = f"Your Google Calendar is connected. Associated with: {result.get('email', 'Unknown email')}"
-                
+            from .google_calendar import get_primary_calendar_for_user
+
+            entry = get_primary_calendar_for_user(self.user_id)
+
+            if entry:
+                email = entry.get('id') or entry.get('summary') or 'Unknown email'
+                data = {'connected': True, 'email': email, 'summary': entry.get('summary')}
+
                 return {
                     'success': True,
-                    'data': result,
-                    'user_message': user_message
+                    'data': data,
+                    'user_message': f"Your Google Calendar is connected. Associated with: {email}"
                 }
             else:
-                error_msg = result.get('error', 'Unknown error')
-                return {
-                    'success': False,
-                    'error': error_msg,
-                    'user_message': f"Your Google Calendar is not connected: {error_msg}"
-                }
-                
+                return self._calendar_not_connected()
+
         except Exception as e:
             logger.error(f"Error checking calendar status: {str(e)}")
             return {

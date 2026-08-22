@@ -15,6 +15,8 @@ from ..models import User
 
 logger = logging.getLogger(__name__)
 
+NOT_CONNECTED_ERROR = "Google Calendar not connected. Please connect your Google account first."
+
 
 def _build_service(access_token: str):
     """Create a Google Calendar service client using a raw access token."""
@@ -77,9 +79,6 @@ def create_event(access_token: str, event_payload: Dict[str, Any]) -> Optional[D
         return None
 
 
-__all__ = ["list_upcoming_events", "create_event", "get_auth_url"]
-
-
 def get_auth_url() -> str:
     """Generate a Google OAuth URL for the frontend to open."""
     creds_file = os.path.join(os.getcwd(), "credentials.json")
@@ -109,3 +108,165 @@ def get_service_for_user(user_id: str):
     except Exception as exc:  # pragma: no cover
         logger.warning("Failed to load calendar creds for user %s: %s", user_id, exc)
         return None
+
+
+# ------------------------- Per-user operations -------------------------
+# These wrap get_service_for_user() so every request runs against the
+# credentials of the authenticated user instead of shared token files.
+
+
+def normalize_event(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert a raw Google Calendar event into the app's canonical shape."""
+    start = event.get("start", {})
+    end = event.get("end", {})
+    start_val = start.get("dateTime") or start.get("date")
+    end_val = end.get("dateTime") or end.get("date")
+    summary = event.get("summary") or "Untitled Event"
+    is_all_day = bool(start_val) and "T" not in start_val
+    date_str = start_val
+    start_time = None
+    end_time = None
+
+    try:
+        if start_val and "T" in start_val:
+            start_dt = datetime.fromisoformat(start_val.replace("Z", "+00:00"))
+            date_str = start_dt.strftime("%B %d, %Y")
+            start_time = start_dt.strftime("%I:%M %p")
+        if end_val and "T" in end_val:
+            end_dt = datetime.fromisoformat(end_val.replace("Z", "+00:00"))
+            end_time = end_dt.strftime("%I:%M %p")
+    except ValueError as exc:
+        logger.warning("Could not parse event times for %s: %s", event.get("id"), exc)
+
+    return {
+        "id": event.get("id"),
+        "summary": summary,
+        "date": date_str,
+        "start_time": start_time,
+        "end_time": end_time,
+        "is_all_day": is_all_day,
+        "htmlLink": event.get("htmlLink"),
+        "location": event.get("location"),
+    }
+
+
+def list_upcoming_events_for_user(
+    user_id: str,
+    max_results: Optional[int] = 10,
+    days_ahead: Optional[int] = 7,
+    time_min: Optional[datetime] = None,
+    time_max: Optional[datetime] = None,
+) -> Optional[List[Dict[str, Any]]]:
+    """
+    Return upcoming events for a user's primary calendar, or None when the
+    user has no stored Google credentials. Events are normalized. Explicit
+    time_min/time_max override the derived now/now+days_ahead window.
+    """
+    service = get_service_for_user(user_id)
+    if service is None:
+        return None
+
+    now = datetime.now(timezone.utc)
+    query_kwargs: Dict[str, Any] = {
+        "calendarId": "primary",
+        "singleEvents": True,
+        "orderBy": "startTime",
+    }
+    query_kwargs["timeMin"] = (
+        time_min.isoformat() if time_min else now.isoformat()
+    )
+    if time_max:
+        query_kwargs["timeMax"] = time_max.isoformat()
+    elif days_ahead is not None:
+        query_kwargs["timeMax"] = (now + timedelta(days=days_ahead)).isoformat()
+    if max_results is not None:
+        query_kwargs["maxResults"] = max_results
+
+    try:
+        result = service.events().list(**query_kwargs).execute()
+    except HttpError as exc:
+        logger.warning("Google Calendar list failed for user %s: %s", user_id, exc)
+        raise
+
+    return [normalize_event(evt) for evt in result.get("items", [])]
+
+
+def create_quick_event_for_user(user_id: str, text: str) -> Dict[str, Any]:
+    """
+    Create an event from natural language via quickAdd, falling back to the
+    manual parser when Google rejects the text. Mirrors the result shape of
+    the old shared-credential flow.
+    """
+    service = get_service_for_user(user_id)
+    if service is None:
+        return {"success": False, "error": NOT_CONNECTED_ERROR}
+
+    text = (text or "").strip()
+    from .calendar_event_parser import create_event_manual_parse
+
+    try:
+        created = service.events().quickAdd(calendarId="primary", text=text).execute()
+    except HttpError as exc:
+        if exc.resp.status == 400:
+            logger.info("quickAdd failed (%s); falling back to manual parse", exc)
+            return create_event_manual_parse(text, lambda: get_service_for_user(user_id))
+        raise
+
+    norm = normalize_event(created)
+    message = (
+        f"Event created: '{norm['summary']}' on {norm.get('date')}"
+        + (f" at {norm['start_time']}" if norm.get("start_time") else "")
+    )
+    return {"success": True, "event": norm, "message": message}
+
+
+def query_freebusy_for_user(
+    user_id: str, time_min: datetime, time_max: datetime
+) -> Optional[List[Dict[str, str]]]:
+    """
+    Return busy time blocks for the user's primary calendar between
+    time_min and time_max, or None when the user is not connected.
+    """
+    service = get_service_for_user(user_id)
+    if service is None:
+        return None
+
+    result = (
+        service.freebusy()
+        .query(
+            body={
+                "timeMin": time_min.isoformat(),
+                "timeMax": time_max.isoformat(),
+                "items": [{"id": "primary"}],
+            }
+        )
+        .execute()
+    )
+    return result.get("calendars", {}).get("primary", {}).get("busy", [])
+
+
+def get_primary_calendar_for_user(user_id: str) -> Optional[Dict[str, Any]]:
+    """Return the user's primary calendarList entry, or None when not connected."""
+    service = get_service_for_user(user_id)
+    if service is None:
+        return None
+
+    calendars = service.calendarList().list(maxResults=10).execute()
+    for entry in calendars.get("items", []):
+        if entry.get("primary"):
+            return entry
+    entry = (calendars.get("items") or [None])[0]
+    return entry
+
+
+__all__ = [
+    "list_upcoming_events",
+    "create_event",
+    "get_auth_url",
+    "get_service_for_user",
+    "normalize_event",
+    "list_upcoming_events_for_user",
+    "create_quick_event_for_user",
+    "query_freebusy_for_user",
+    "get_primary_calendar_for_user",
+]

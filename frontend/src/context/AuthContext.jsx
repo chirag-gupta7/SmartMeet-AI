@@ -35,8 +35,8 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
-  const googleLogin = async (token) => {
-    const data = await authService.googleLogin(token);
+  const googleLogin = async (code) => {
+    const data = await authService.googleLogin(code);
     localStorage.setItem('token', data.token);
     setUser(data.user);
     return data;
