@@ -5,6 +5,7 @@ from flask_cors import CORS
 from .config import Config
 from .extensions import bcrypt, db, jwt, migrate
 from .routes import register_blueprints
+from .services.command_processor import set_flask_app_for_command_processor
 
 load_dotenv()
 
@@ -24,6 +25,7 @@ def create_app(config_class: type[Config] | None = None) -> Flask:
     register_extensions(app)
     register_blueprints(app)
     register_healthcheck(app)
+    set_flask_app_for_command_processor(app)
 
     with app.app_context():
         # Ensure tables exist so first-time developers can run without migrations

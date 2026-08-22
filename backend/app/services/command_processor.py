@@ -10,11 +10,7 @@ from dateutil import parser
 import uuid
 
 from ..extensions import db
-from ..models import User
-
-# Optional models not present in this codebase
-Log = None  # type: ignore
-Note = None  # type: ignore
+from ..models import Log, Note, User
 
 logger = logging.getLogger(__name__)
 
