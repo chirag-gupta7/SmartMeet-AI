@@ -1,3 +1,4 @@
+import ast
 import logging
 import os
 import requests
@@ -13,6 +14,36 @@ from ..extensions import db
 from ..models import Log, Note, User
 
 logger = logging.getLogger(__name__)
+
+# Binary/unary operators allowed in the safe arithmetic evaluator, mapped
+# to plain Python functions so user input is never dynamically executed.
+_SAFE_BIN_OPS = {
+    ast.Add: lambda a, b: a + b,
+    ast.Sub: lambda a, b: a - b,
+    ast.Mult: lambda a, b: a * b,
+    ast.Div: lambda a, b: a / b,
+    ast.FloorDiv: lambda a, b: a // b,
+    ast.Mod: lambda a, b: a % b,
+    ast.Pow: lambda a, b: a ** b,
+}
+
+_SAFE_UNARY_OPS = {
+    ast.UAdd: lambda a: +a,
+    ast.USub: lambda a: -a,
+}
+
+
+def _safe_eval(node: ast.expr) -> float:
+    """Evaluate an arithmetic AST composed only of numbers and operators."""
+    if isinstance(node, ast.Expression):
+        return _safe_eval(node.body)
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
+        return node.value
+    if isinstance(node, ast.BinOp) and type(node.op) in _SAFE_BIN_OPS:
+        return _SAFE_BIN_OPS[type(node.op)](_safe_eval(node.left), _safe_eval(node.right))
+    if isinstance(node, ast.UnaryOp) and type(node.op) in _SAFE_UNARY_OPS:
+        return _SAFE_UNARY_OPS[type(node.op)](_safe_eval(node.operand))
+    raise ValueError(f"Unsupported expression element: {type(node).__name__}")
 
 # Global reference to the Flask app instance, to be set by app.py
 _flask_app_instance_cp = None
@@ -464,18 +495,16 @@ class VoiceCommandProcessor:
     def calculate(self, expression: str) -> Dict[str, Any]:
         """
         Calculate the result of a simple arithmetic expression.
+
+        Uses an AST walk restricted to numeric literals and basic
+        arithmetic operators; no dynamic execution of user input.
         """
         logger.info(f"Calculating: {expression}")
-        
+
         try:
-            # A safer eval implementation for simple arithmetic
-            # In production, you would want a proper expression parser
-            import re
-            if not re.match(r'^[\d\s\+\-\*\/\(\)\.\,]+$', expression):
-                raise ValueError("Invalid characters in expression")
-                
-            result = eval(expression)
-            
+            tree = ast.parse(str(expression), mode='eval')
+            result = _safe_eval(tree)
+
             return {
                 'success': True,
                 'data': {
