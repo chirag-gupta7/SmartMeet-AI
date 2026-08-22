@@ -150,7 +150,9 @@ def test_create_quick_event_passes_calling_users_id_and_text(app, user_factory):
             "Schedule lunch tomorrow at noon"
         )
 
-    mock_create.assert_called_once_with(user.id, "Schedule lunch tomorrow at noon")
+    mock_create.assert_called_once_with(
+        user.id, "Schedule lunch tomorrow at noon", timezone_name=None
+    )
     assert res["success"] is True
     assert "Is there anything else" in res["user_message"]
 
