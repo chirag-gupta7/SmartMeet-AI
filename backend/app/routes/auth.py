@@ -1,5 +1,7 @@
 import json
 import os
+from zoneinfo import ZoneInfo
+
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -144,6 +146,14 @@ def update_user():
 
     if "calendar_preference" in payload:
         user.calendar_preference = _validated_preference(payload.get("calendar_preference"))
+
+    if "timezone" in payload:
+        tz_name = (payload.get("timezone") or "UTC").strip()
+        try:
+            ZoneInfo(tz_name)
+        except Exception:
+            return jsonify({"message": f"Invalid timezone: {tz_name}"}), 400
+        user.timezone = tz_name
 
     db.session.commit()
 

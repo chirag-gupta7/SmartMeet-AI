@@ -38,6 +38,12 @@ class User(BaseModel, db.Model):
         nullable=False,
         default="local",
     )
+    timezone = db.Column(
+        db.String(64),
+        nullable=False,
+        default="UTC",
+        server_default="UTC",
+    )
     google_credentials = db.Column(JSON, nullable=True)
 
     meetings = db.relationship(
@@ -64,6 +70,7 @@ class User(BaseModel, db.Model):
             "name": self.name,
             "email": self.email,
             "calendar_preference": self.calendar_preference,
+            "timezone": self.timezone,
             "created_at": self.created_at.isoformat(),
         }
 
