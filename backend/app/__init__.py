@@ -14,11 +14,18 @@ def create_app(config_class: type[Config] | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_class or Config())
 
-    # Explicitly allow requests from frontend URL (localhost:5173)
-    # and allow credentials (cookies) to be passed back and forth.
+    # Allow requests from the configured frontend origin(s) and allow
+    # credentials (cookies) to be passed back and forth.
+    frontend_url = (app.config.get("FRONTEND_URL") or "http://localhost:3000").rstrip("/")
+    cors_origins = [frontend_url]
+    if "127.0.0.1" in frontend_url:
+        cors_origins.append(frontend_url.replace("127.0.0.1", "localhost"))
+    elif "localhost" in frontend_url:
+        cors_origins.append(frontend_url.replace("localhost", "127.0.0.1"))
+
     CORS(
         app,
-        resources={r"/api/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}},
+        resources={r"/api/*": {"origins": cors_origins}},
         supports_credentials=True,
     )
 
@@ -26,10 +33,6 @@ def create_app(config_class: type[Config] | None = None) -> Flask:
     register_blueprints(app)
     register_healthcheck(app)
     set_flask_app_for_command_processor(app)
-
-    with app.app_context():
-        # Ensure tables exist so first-time developers can run without migrations
-        db.create_all()
 
     return app
 
