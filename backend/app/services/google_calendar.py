@@ -93,7 +93,7 @@ def get_auth_url() -> str:
 
 def get_service_for_user(user_id: str):
     """Return a calendar service using stored user credentials, or None if not connected."""
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user or not user.google_credentials:
         return None
 
