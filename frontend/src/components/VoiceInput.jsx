@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Mic, MicOff, Square } from 'lucide-react';
 import { voiceService } from '../services/voiceService';
+import api from '../services/api';
 
 const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) => {
   const [isListening, setIsListening] = useState(false);
@@ -83,11 +84,11 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
       onProcessing(true); // Show loading state while fetching greeting
       
       try {
-        // Fetch greeting from backend
-        const response = await fetch('/api/voice/greeting', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const data = await response.json();
+        // Fetch greeting from backend via the shared axios instance so the
+        // configured API baseURL (and auth interceptor) are used - a bare
+        // relative fetch hit the frontend dev server, not the API.
+        const response = await api.get('/api/voice/greeting');
+        const data = response.data;
 
         if (data.success && data.audio_base64) {
           // Play greeting
