@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from zoneinfo import ZoneInfo
 
@@ -10,6 +11,7 @@ from ..extensions import db
 from ..models import User
 
 auth_bp = Blueprint("auth", __name__)
+logger = logging.getLogger(__name__)
 
 
 def _validated_preference(value: str | None) -> str:
@@ -82,7 +84,7 @@ def google_login():
         redirect_uri = f"{frontend_url}/auth/callback"
 
         # Debug logging to track what URI is being used
-        print(f"DEBUG: Google login using redirect_uri: {redirect_uri}")
+        logger.debug("Google login using redirect_uri: %s", redirect_uri)
 
         flow = InstalledAppFlow.from_client_secrets_file(
             creds_file,
@@ -127,9 +129,12 @@ def google_login():
         )
 
     except Exception as exc:  # pragma: no cover
-        # Log OAuth errors to help diagnose redirect/consent issues
-        print(f"OAuth Error: {exc}")
-        return jsonify({"message": str(exc)}), 500
+        # Log OAuth errors server-side, but never echo raw exception text to
+        # the client (it can leak redirect URIs, token endpoints, etc.).
+        logger.warning("Google OAuth login failed: %s", exc)
+        return jsonify(
+            {"message": "Google authentication failed. Please try again."}
+        ), 500
 
 
 @auth_bp.patch("/me")
