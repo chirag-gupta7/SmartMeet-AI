@@ -1,6 +1,7 @@
 import ast
 import logging
 import os
+import re
 import requests
 import threading
 import time
@@ -140,6 +141,99 @@ class VoiceCommandProcessor:
             logger.warning(error_msg)
             self._log_command_to_database('WARNING', error_msg, {'command': command})
             return {'success': False, 'error': error_msg, 'user_message': f"I don't recognize the command '{command}'. Try asking for weather, news, or setting a reminder."}
+
+    def detect_and_process(self, text: str) -> Optional[Dict[str, Any]]:
+        """
+        Best-effort intent detection over the built-in commands for free-form
+        transcripts the LLM classified as general. Returns None when nothing
+        matches so the caller can keep its own reply.
+
+        Scheduling and weather are handled by the caller before this runs.
+        """
+        if not text or not text.strip():
+            return None
+
+        lowered = text.lower()
+
+        # --- simple no-argument commands ---------------------------------
+        if 'joke' in lowered:
+            return self.process_command('joke')
+        if re.search(r'\bfact\b', lowered):
+            return self.process_command('fact')
+        if 'news' in lowered or 'headline' in lowered:
+            return self.process_command('news')
+
+        # --- calendar queries --------------------------------------------
+        if 'next meeting' in lowered or 'next event' in lowered:
+            return self.process_command('calendar_next')
+        if re.search(r"\b(today'?s|for today)\b.*\b(event|meeting|calendar)\b", lowered) or (
+            'today' in lowered and 'calendar' in lowered
+        ):
+            return self.process_command('calendar_today')
+        if 'upcoming' in lowered or 'coming week' in lowered:
+            match = re.search(r'next\s+(\d+)\s+days?', lowered)
+            days = int(match.group(1)) if match else 7
+            return self.process_command('calendar_upcoming', days=days)
+        if 'free time' in lowered or 'free slot' in lowered or 'available' in lowered:
+            return self.process_command('calendar_free_time')
+        if ('calendar' in lowered or 'google' in lowered) and (
+            'status' in lowered or 'connected' in lowered
+        ):
+            return self.process_command('calendar_status')
+
+        # --- commands that need extracted arguments -----------------------
+        calc = re.search(r'\bcalculate\s+(.+)', lowered)
+        if calc:
+            return self.process_command('calculate', expression=calc.group(1).strip())
+
+        note = re.search(
+            r'\b(?:take a note|make a note|note that|remember(?: that)?)\s+(.+)',
+            text,
+            re.IGNORECASE,
+        )
+        if note and note.group(1).strip():
+            return self.take_note(note.group(1).strip())
+
+        search = re.search(r'\b(?:search(?:\s+for)?|look up)\s+(.+)', text, re.IGNORECASE)
+        if search and search.group(1).strip():
+            return self.process_command('search', query=search.group(1).strip())
+
+        translate = re.search(
+            r'\btranslate\s+(.+?)\s+(?:to|into)\s+([\w ]+)$', text, re.IGNORECASE
+        )
+        if translate:
+            return self.process_command(
+                'translate',
+                text=translate.group(1).strip(),
+                target_language=translate.group(2).strip().title(),
+            )
+
+        timer = re.search(r'\b(?:set|start)\s+a?\s*timer\s+for\s+(\d+)\s*(minutes?|mins?|seconds?)', lowered)
+        if timer:
+            amount = int(timer.group(1))
+            duration_minutes = amount / 60 if timer.group(2).startswith(('s',)) else amount
+            return self.set_timer(int(duration_minutes))
+
+        reminder = re.search(
+            r'\bremind me to\s+(?P<task>.+?)\s+(?P<when>tomorrow|today|next \w+|at\s+.+|on\s+.+)$',
+            text,
+            re.IGNORECASE,
+        )
+        if reminder:
+            return self.process_command(
+                'reminder',
+                text=reminder.group('task').strip(),
+                when=reminder.group('when').strip(),
+            )
+        if 'remind me' in lowered:
+            return {
+                'success': False,
+                'error': 'Could not parse reminder',
+                'user_message': "Sure - what should I remind you about, and when? "
+                                "For example: 'remind me to call mom tomorrow'.",
+            }
+
+        return None
 
     def _log_command_to_database(self, level: str, message: str, extra_data: Dict = None):
         """Log command events to database, ensuring application context."""

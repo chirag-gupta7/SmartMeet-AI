@@ -63,8 +63,12 @@ def process_voice():
                 auth_url = get_auth_url()
                 reply = "I need permission to access your Google Calendar. Please click the button below to connect."
                 action_type = "auth_required"
-    elif "weather" in transcript.lower():
+    elif action == "weather" or "weather" in transcript.lower():
         command_result = processor.get_weather(location="current location")
+    else:
+        # General intents: give the built-in command processor a chance so
+        # notes, timers, calculations, calendar queries etc. actually work.
+        command_result = processor.detect_and_process(transcript)
 
     if command_result:
         reply = command_result.get("user_message", reply)
