@@ -58,5 +58,5 @@ token.json
 *.orig
 .cache/
 
-# Graphify regenerable cache
-graphify-out/cache/
+# Graphify knowledge-graph output (regenerable, never committed)
+graphify-out/
