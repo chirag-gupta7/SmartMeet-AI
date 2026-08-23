@@ -914,10 +914,13 @@ class VoiceCommandProcessor:
 
         try:
             from .google_calendar import query_freebusy_for_user
+            from .datetime_parser import resolve_timezone
 
-            now = datetime.now(timezone.utc)
-            start_of_day = now.replace(hour=9, minute=0, second=0, microsecond=0)
-            end_of_day = now.replace(hour=17, minute=0, second=0, microsecond=0)
+            # Business hours are 9:00-17:00 in the USER's timezone, not UTC.
+            tz = resolve_timezone(self.timezone_name)
+            now_local = datetime.now(tz)
+            start_of_day = now_local.replace(hour=9, minute=0, second=0, microsecond=0)
+            end_of_day = now_local.replace(hour=17, minute=0, second=0, microsecond=0)
 
             busy = query_freebusy_for_user(self.user_id, start_of_day, end_of_day)
 
