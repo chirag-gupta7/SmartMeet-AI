@@ -5,6 +5,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from ..extensions import db
 from ..models import Meeting, User
+from ..timeutils import to_naive_utc
 
 meetings_bp = Blueprint("meetings", __name__)
 
@@ -36,7 +37,7 @@ def create_meeting():
         return jsonify({"message": "Title and start_time are required"}), 400
 
     try:
-        start_dt = datetime.fromisoformat(start_time)
+        start_dt = to_naive_utc(datetime.fromisoformat(start_time))
     except ValueError:
         return jsonify({"message": "start_time must be ISO8601"}), 400
 
@@ -70,7 +71,7 @@ def update_meeting(meeting_id: str):
         meeting.duration_minutes = int(payload["duration"])
     if "start_time" in payload:
         try:
-            meeting.start_time = datetime.fromisoformat(payload["start_time"])
+            meeting.start_time = to_naive_utc(datetime.fromisoformat(payload["start_time"]))
         except ValueError:
             return jsonify({"message": "start_time must be ISO8601"}), 400
 

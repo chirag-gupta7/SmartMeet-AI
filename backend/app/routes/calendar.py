@@ -8,6 +8,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from ..extensions import db
 from ..models import Meeting
 from ..services import google_calendar
+from ..timeutils import to_naive_utc
 
 calendar_bp = Blueprint("calendar", __name__)
 
@@ -119,8 +120,9 @@ def list_events():
                 }
             )
 
-    # Fallback to local events
-    window_start = datetime.now(timezone.utc) - timedelta(days=7)
+    # Fallback to local events. Stored start_time values are naive UTC
+    # (see timeutils.to_naive_utc), so the window must be naive too.
+    window_start = to_naive_utc(datetime.now(timezone.utc)) - timedelta(days=7)
     meetings = (
         Meeting.query.filter_by(owner_id=user_id)
         .filter(Meeting.start_time >= window_start)
@@ -164,7 +166,7 @@ def sync_calendar():
         return jsonify({"success": False, "message": "title and start are required"}), 400
 
     try:
-        start_time = parser.parse(start_raw)
+        start_time = to_naive_utc(parser.parse(start_raw))
     except (ValueError, TypeError):
         return jsonify({"success": False, "message": "Invalid start timestamp"}), 400
 
@@ -227,12 +229,16 @@ def create_structured_event():
         return jsonify({"success": False, "message": "title and start are required"}), 400
 
     try:
-        start_time = parser.parse(start_raw)
+        start_time = to_naive_utc(parser.parse(start_raw))
     except (ValueError, TypeError):
         return jsonify({"success": False, "message": "Invalid start timestamp"}), 400
 
     try:
-        end_time = parser.parse(end_raw) if end_raw else start_time + timedelta(minutes=duration_minutes)
+        end_time = (
+            to_naive_utc(parser.parse(end_raw))
+            if end_raw
+            else start_time + timedelta(minutes=duration_minutes)
+        )
     except (ValueError, TypeError):
         return jsonify({"success": False, "message": "Invalid end timestamp"}), 400
 
