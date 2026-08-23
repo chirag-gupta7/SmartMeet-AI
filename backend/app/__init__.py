@@ -1,18 +1,56 @@
+import logging
+import os
+
 from dotenv import load_dotenv
 from flask import Flask
 from flask_cors import CORS
 
-from .config import Config
+from .config import DEFAULT_JWT_SECRET_KEY, DEFAULT_SECRET_KEY, Config
 from .extensions import bcrypt, db, jwt, migrate
 from .routes import register_blueprints
 from .services.command_processor import set_flask_app_for_command_processor
 
+logger = logging.getLogger(__name__)
+
 load_dotenv()
+
+
+def _validate_secrets(app: Flask) -> None:
+    """Warn (and in production, refuse to start) when secret keys are left
+    at their insecure placeholder defaults."""
+    insecure = [
+        name
+        for name, default in (
+            ("SECRET_KEY", DEFAULT_SECRET_KEY),
+            ("JWT_SECRET_KEY", DEFAULT_JWT_SECRET_KEY),
+        )
+        if app.config.get(name) == default
+    ]
+    if not insecure:
+        return
+
+    env = (
+        app.config.get("FLASK_ENV")
+        or os.getenv("FLASK_ENV")
+        or "development"
+    )
+    message = (
+        f"Insecure secret configuration: {', '.join(insecure)} "
+        f"is/are still using the built-in placeholder default. "
+        f"Set real random values before deploying (e.g. "
+        f"`python -c \"import secrets; print(secrets.token_hex(32))\"`)."
+    )
+
+    if str(env).lower() == "production":
+        raise RuntimeError(message)
+
+    logger.warning(message)
 
 
 def create_app(config_class: type[Config] | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_class or Config())
+    _validate_secrets(app)
 
     # Allow requests from the configured frontend origin(s) and allow
     # credentials (cookies) to be passed back and forth.
