@@ -140,7 +140,25 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
           type="button"
           onClick={handleInteraction}
           disabled={Boolean(error)}
-          className={`relative p-8 rounded-full transition-all duration-300 ${
+          aria-label={
+            isListening
+              ? 'Stop listening'
+              : isPlayingAudio
+                ? 'Interrupt AI speech and start speaking'
+                : isFirstInteraction
+                  ? 'Start voice assistant'
+                  : 'Start speaking'
+          }
+          title={
+            isListening
+              ? 'Stop listening'
+              : isPlayingAudio
+                ? 'Interrupt AI speech and start speaking'
+                : isFirstInteraction
+                  ? 'Start voice assistant'
+                  : 'Start speaking'
+          }
+          className={`relative p-8 rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-300 ${
             isListening 
               ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
               : isPlayingAudio 
