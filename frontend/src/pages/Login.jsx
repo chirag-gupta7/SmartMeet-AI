@@ -9,27 +9,20 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login: passwordLogin, googleLogin: authGoogleLogin } = useAuth();
   const navigate = useNavigate();
 
   const handleGoogleSuccess = async (authResult) => {
+    setError('');
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await fetch('/api/auth/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: authResult.code }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/');
-      } else {
-        setError(data.message || 'Google login failed');
-      }
+      // Route through AuthContext so the token AND user state update;
+      // the old raw-fetch version left the context empty and bounced
+      // the user straight back to /login.
+      await authGoogleLogin(authResult.code);
+      navigate('/');
     } catch (err) {
-      setError('Google login failed');
+      setError(err.response?.data?.message || 'Google login failed');
     } finally {
       setLoading(false);
     }
@@ -41,7 +34,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      await login(email, password);
+      await passwordLogin(email, password);
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to login');

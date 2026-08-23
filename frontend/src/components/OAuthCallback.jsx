@@ -1,41 +1,37 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const OAuthCallback = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { googleLogin } = useAuth();
   const calledRef = useRef(false); // Prevent double-fire in React Strict Mode
 
   useEffect(() => {
+    if (calledRef.current) return;
+
     const params = new URLSearchParams(location.search);
     const code = params.get('code');
     const error = params.get('error');
 
     if (error) {
       console.error('Google Auth error:', error);
-      alert('Google Auth Failed');
-      navigate('/login');
+      navigate('/', { replace: true });
       return;
     }
 
-    // Check if code exists AND if we haven't called it yet
-    if (code && !calledRef.current) {
-      calledRef.current = true; // Mark as called immediately
-
-      api.post('/api/auth/google', { code })
-        .then((res) => {
-          localStorage.setItem('token', res.data.token);
-          alert('Login successful!');
-          navigate('/dashboard');
-        })
+    // Route through AuthContext so the token AND user state update.
+    if (code) {
+      calledRef.current = true;
+      googleLogin(code)
+        .then(() => navigate('/', { replace: true }))
         .catch((err) => {
-          console.error('Login failed:', err);
-          alert('Login failed. Please try again.');
-          navigate('/login');
+          console.error('Google login failed:', err);
+          navigate('/', { replace: true });
         });
     }
-  }, [location, navigate]);
+  }, [location, navigate, googleLogin]);
 
   return (
     <div className="flex items-center justify-center h-screen">
