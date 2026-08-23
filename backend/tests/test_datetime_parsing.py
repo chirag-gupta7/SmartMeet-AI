@@ -28,6 +28,19 @@ def test_tomorrow_at_3pm_parses_successfully():
     assert result["start_datetime"].date() == expected_day.date()
 
 
+def test_day_after_tomorrow_is_two_days_out():
+    """Regression: 'day after tomorrow' used to match the 'tomorrow' branch
+    and land one day early."""
+    result = parse_natural_language_datetime(
+        "Schedule a call day after tomorrow at 3pm", UTC
+    )
+
+    assert result["success"] is True
+    expected_day = (datetime.now(ZoneInfo(UTC)) + timedelta(days=2)).date()
+    assert result["start_datetime"].date() == expected_day
+    assert result["start_datetime"].hour == 15
+
+
 def test_day_keyword_without_time_is_all_day():
     result = parse_natural_language_datetime("team offsite next Friday", UTC)
     now = datetime.now(ZoneInfo(UTC))

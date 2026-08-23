@@ -54,15 +54,17 @@ def parse_natural_language_datetime(text, timezone_name=None):
         is_all_day = True
     
     # Day/date detection - enhanced with more patterns
-    if 'tomorrow' in text:
+    # NOTE: "day after tomorrow" must be checked before "tomorrow", otherwise
+    # the substring match claims it and the event lands one day early.
+    if 'day after tomorrow' in text:
+        day_signal_found = True
+        base_date = now + timedelta(days=2)
+    elif 'tomorrow' in text:
         day_signal_found = True
         base_date = now + timedelta(days=1)
     elif 'today' in text:
         day_signal_found = True
         base_date = now
-    elif 'day after tomorrow' in text:
-        day_signal_found = True
-        base_date = now + timedelta(days=2)
     elif re.search(r'next\s+monday', text, re.IGNORECASE):
         day_signal_found = True
         days_ahead = (7 - now.weekday()) % 7
