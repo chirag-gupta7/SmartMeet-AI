@@ -7,6 +7,14 @@ from datetime import timedelta
 DEFAULT_SECRET_KEY = "change-me"
 DEFAULT_JWT_SECRET_KEY = "change-me-too"
 
+# Predictable values that also ship in .env.example. Copying the example
+# must not defeat the production guard, so these are treated exactly like
+# the built-in placeholders above.
+INSECURE_SECRET_VALUES = {
+    "SECRET_KEY": {DEFAULT_SECRET_KEY, "super-secret-key"},
+    "JWT_SECRET_KEY": {DEFAULT_JWT_SECRET_KEY, "smartmeet-jwt-secret"},
+}
+
 
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", DEFAULT_SECRET_KEY)

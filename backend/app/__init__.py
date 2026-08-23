@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from flask import Flask
 from flask_cors import CORS
 
-from .config import DEFAULT_JWT_SECRET_KEY, DEFAULT_SECRET_KEY, Config
+from .config import INSECURE_SECRET_VALUES, Config
 from .extensions import bcrypt, db, jwt, migrate
 from .routes import register_blueprints
 from .services.command_processor import set_flask_app_for_command_processor
@@ -17,14 +17,12 @@ load_dotenv()
 
 def _validate_secrets(app: Flask) -> None:
     """Warn (and in production, refuse to start) when secret keys are left
-    at their insecure placeholder defaults."""
+    at insecure, predictable values (built-in placeholders or the values
+    shipped in .env.example)."""
     insecure = [
         name
-        for name, default in (
-            ("SECRET_KEY", DEFAULT_SECRET_KEY),
-            ("JWT_SECRET_KEY", DEFAULT_JWT_SECRET_KEY),
-        )
-        if app.config.get(name) == default
+        for name, known_bad in INSECURE_SECRET_VALUES.items()
+        if app.config.get(name) in known_bad
     ]
     if not insecure:
         return

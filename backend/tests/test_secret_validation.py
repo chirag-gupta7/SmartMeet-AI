@@ -59,3 +59,33 @@ def test_existing_test_config_does_not_trip_the_check(app, caplog):
         if r.levelno == logging.WARNING and "Insecure secret configuration" in r.getMessage()
     ]
     assert warnings == []
+
+
+class EnvExampleSecretsConfig(Config):
+    """Values copied verbatim from the tracked .env.example file."""
+
+    TESTING = True
+    SECRET_KEY = "super-secret-key"
+    JWT_SECRET_KEY = "smartmeet-jwt-secret"
+
+
+class ProdEnvExampleSecretsConfig(EnvExampleSecretsConfig):
+    FLASK_ENV = "production"
+
+
+def test_env_example_values_are_flagged_in_dev(caplog):
+    application = create_app(EnvExampleSecretsConfig)
+
+    warnings = [
+        r for r in caplog.records
+        if r.levelno == logging.WARNING and "Insecure secret configuration" in r.getMessage()
+    ]
+    assert len(warnings) == 1
+    message = warnings[0].getMessage()
+    assert "SECRET_KEY" in message
+    assert "JWT_SECRET_KEY" in message
+
+
+def test_production_with_env_example_values_refuses_to_start():
+    with pytest.raises(RuntimeError, match="Insecure secret configuration"):
+        create_app(ProdEnvExampleSecretsConfig)
