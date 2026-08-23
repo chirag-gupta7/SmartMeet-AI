@@ -42,10 +42,12 @@ def parse_natural_language_datetime(text, timezone_name=None):
     results including success status, extracted timezone-aware date/time,
     and whether it's an all-day event.
     """
+    original_text = text
     text = text.lower().strip()
     tzinfo_obj = resolve_timezone(timezone_name)
     now = datetime.now(tzinfo_obj)
     is_all_day = False
+    day_signal_found = False
     
     # Check for "all day" markers
     if re.search(r'\b(all[- ]?day|full[- ]?day)\b', text):
@@ -53,53 +55,66 @@ def parse_natural_language_datetime(text, timezone_name=None):
     
     # Day/date detection - enhanced with more patterns
     if 'tomorrow' in text:
+        day_signal_found = True
         base_date = now + timedelta(days=1)
     elif 'today' in text:
+        day_signal_found = True
         base_date = now
     elif 'day after tomorrow' in text:
+        day_signal_found = True
         base_date = now + timedelta(days=2)
     elif re.search(r'next\s+monday', text, re.IGNORECASE):
+        day_signal_found = True
         days_ahead = (7 - now.weekday()) % 7
         if days_ahead == 0:
             days_ahead = 7  # If today is Monday, go to next Monday
         base_date = now + timedelta(days=days_ahead)
     elif re.search(r'next\s+tuesday', text, re.IGNORECASE):
+        day_signal_found = True
         days_ahead = (8 - now.weekday()) % 7
         if days_ahead == 0:
             days_ahead = 7
         base_date = now + timedelta(days=days_ahead)
     elif re.search(r'next\s+wednesday', text, re.IGNORECASE):
+        day_signal_found = True
         days_ahead = (9 - now.weekday()) % 7
         if days_ahead == 0:
             days_ahead = 7
         base_date = now + timedelta(days=days_ahead)
     elif re.search(r'next\s+thursday', text, re.IGNORECASE):
+        day_signal_found = True
         days_ahead = (10 - now.weekday()) % 7
         if days_ahead == 0:
             days_ahead = 7
         base_date = now + timedelta(days=days_ahead)
     elif re.search(r'next\s+friday', text, re.IGNORECASE):
+        day_signal_found = True
         days_ahead = (11 - now.weekday()) % 7
         if days_ahead == 0:
             days_ahead = 7
         base_date = now + timedelta(days=days_ahead)
     elif re.search(r'next\s+saturday', text, re.IGNORECASE):
+        day_signal_found = True
         days_ahead = (12 - now.weekday()) % 7
         if days_ahead == 0:
             days_ahead = 7
         base_date = now + timedelta(days=days_ahead)
     elif re.search(r'next\s+sunday', text, re.IGNORECASE):
+        day_signal_found = True
         days_ahead = (13 - now.weekday()) % 7
         if days_ahead == 0:
             days_ahead = 7
         base_date = now + timedelta(days=days_ahead)
     elif re.search(r'this\s+weekend', text, re.IGNORECASE):
+        day_signal_found = True
         # Assume this weekend means the upcoming Saturday
         days_ahead = (5 - now.weekday()) % 7
         base_date = now + timedelta(days=days_ahead)
     elif 'next week' in text:
+        day_signal_found = True
         base_date = now + timedelta(weeks=1)
     elif 'next month' in text:
+        day_signal_found = True
         base_date = now + relativedelta(months=1)
     else:
         try:
@@ -108,6 +123,16 @@ def parse_natural_language_datetime(text, timezone_name=None):
                 # dateutil returns naive datetimes; anchor them to the
                 # requested timezone so downstream math stays consistent.
                 base_date = base_date.replace(tzinfo=tzinfo_obj)
+            # Only trust the fuzzy fallback when the text contains real
+            # date/time evidence (a digit or a month name); otherwise the
+            # result is implausible noise fabricated from ordinary words.
+            if re.search(r'\d', text) or re.search(
+                r'\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|'
+                r'jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|'
+                r'dec(?:ember)?)\b',
+                text,
+            ):
+                day_signal_found = True
         except Exception as e:
             logger.warning(f"Failed to parse date with dateutil: {e}")
             base_date = now
@@ -232,18 +257,30 @@ def parse_natural_language_datetime(text, timezone_name=None):
                 end_datetime = base_date + timedelta(hours=1)
                 break
     
-    # If no time specification found and it's not explicitly an all-day event
+    # Day-related keywords, used both by the all-day fallback below and to
+    # detect whether any day signal exists in the input at all.
+    day_keywords = ['tomorrow', 'today', 'monday', 'tuesday', 'wednesday', 
+                  'thursday', 'friday', 'saturday', 'sunday', 'next week', 'weekend']
+    
+    # If no time specification found and it's not explicitly an all-day
+    # event, a day keyword alone makes it an all-day event.
     if not time_found and not is_all_day:
-        # If there are day-related keywords but no time, make it an all-day event
-        day_keywords = ['tomorrow', 'today', 'monday', 'tuesday', 'wednesday', 
-                      'thursday', 'friday', 'saturday', 'sunday', 'next week', 'weekend']
-        
         if any(keyword in text.lower() for keyword in day_keywords):
             is_all_day = True
             # Set time to beginning of day
             base_date = base_date.replace(hour=0, minute=0, second=0, microsecond=0)
             # No end time for all-day events
             end_datetime = None
+    
+    # No day and no time signal anywhere in the input: report a real failure
+    # instead of silently scheduling the event at "now".
+    if not time_found and not day_signal_found and not any(
+        keyword in text.lower() for keyword in day_keywords
+    ):
+        return {
+            'success': False,
+            'error': f"Could not find any date or time information in: '{original_text}'"
+        }
     
     # Build and return the result structure
     result = {
