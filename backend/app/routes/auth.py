@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from google_auth_oauthlib.flow import InstalledAppFlow
+from sqlalchemy.exc import IntegrityError
 
 from ..extensions import db
 from ..models import User
@@ -38,7 +39,13 @@ def register():
     user = User(name=name, email=email, calendar_preference=calendar_preference)
     user.set_password(password)
     db.session.add(user)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        # Two concurrent registrations can pass the pre-check above; the
+        # unique constraint is the real guard.
+        db.session.rollback()
+        return jsonify({"message": "Email already registered"}), 409
 
     access_token = create_access_token(identity=user.id)
     return jsonify({"token": access_token, "user": user.to_dict()})
