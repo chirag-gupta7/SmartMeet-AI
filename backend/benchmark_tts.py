@@ -2,7 +2,7 @@ import time
 import base64
 from unittest.mock import MagicMock, patch
 from flask import Flask
-from app.services.elevenlabs_service import synthesize_speech, _memoized_synthesize_speech
+from app.services.elevenlabs_service import synthesize_speech, _synthesize_speech_memoized
 
 def benchmark():
     app = Flask(__name__)
@@ -11,7 +11,7 @@ def benchmark():
 
     with app.app_context():
         # Clear cache before starting
-        _memoized_synthesize_speech.cache_clear()
+        _synthesize_speech_memoized.cache_clear()
 
         # Mocking ElevenLabs client and its convert method
         mock_client = MagicMock()
