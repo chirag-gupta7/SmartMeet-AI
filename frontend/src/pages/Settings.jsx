@@ -26,11 +26,12 @@ const Settings = () => {
     setSyncing(true);
     setMessage('');
     try {
-      const data = await calendarService.sync();
-      setMessage(data.message);
+      // POST /calendar/sync requires a meeting payload, so a bare "sync"
+      // always failed; refreshing the event list is what this button means.
       await loadEvents();
+      setMessage('Calendar refreshed.');
     } catch (error) {
-      setMessage('Failed to sync calendar');
+      setMessage('Failed to refresh calendar');
     } finally {
       setSyncing(false);
     }
@@ -70,7 +71,9 @@ const Settings = () => {
                 <CalendarIcon className="h-5 w-5 text-primary-600 mr-3" />
                 <div>
                   <p className="font-semibold text-gray-900">{event.title}</p>
-                  <p className="text-sm text-gray-500">{new Date(event.start_time).toLocaleString()}</p>
+                  <p className="text-sm text-gray-500">
+                    {new Date(event.start || event.start_time).toLocaleString()}
+                  </p>
                 </div>
               </div>
             ))
