@@ -10,6 +10,8 @@ from googleapiclient.errors import HttpError
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
+from flask import current_app
+
 from ..extensions import db
 from ..models import User
 
@@ -80,13 +82,24 @@ def create_event(access_token: str, event_payload: Dict[str, Any]) -> Optional[D
 
 
 def get_auth_url() -> str:
-    """Generate a Google OAuth URL for the frontend to open."""
+    """Generate a Google OAuth URL for the frontend to open.
+
+    The default redirect URI must match the React route that handles the
+    callback (App.jsx: /auth/callback) - the old ':3000/oauth2callback'
+    default pointed at a route that does not exist, dropping the auth code.
+    GOOGLE_REDIRECT_URI can still override it for deployments.
+    """
     creds_file = os.path.join(os.getcwd(), "credentials.json")
+    frontend_url = (
+        current_app.config.get("FRONTEND_URL") or "http://localhost:3000"
+    ).rstrip("/")
     flow = InstalledAppFlow.from_client_secrets_file(
         creds_file,
         scopes=["https://www.googleapis.com/auth/calendar.events"],
     )
-    flow.redirect_uri = os.environ.get("GOOGLE_REDIRECT_URI", "http://localhost:3000/oauth2callback")
+    flow.redirect_uri = os.environ.get(
+        "GOOGLE_REDIRECT_URI", f"{frontend_url}/auth/callback"
+    )
     auth_url, _ = flow.authorization_url(prompt="consent")
     return auth_url
 
