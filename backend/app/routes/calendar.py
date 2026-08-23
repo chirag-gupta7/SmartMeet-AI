@@ -160,7 +160,17 @@ def sync_calendar():
     title = payload.get("title")
     description = payload.get("description")
     start_raw = payload.get("start")
-    duration_minutes = payload.get("duration_minutes") or 60
+
+    raw_duration = payload.get("duration_minutes")
+    if raw_duration is None or raw_duration == "":
+        duration_minutes = 60
+    else:
+        try:
+            duration_minutes = int(raw_duration)
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "message": "duration_minutes must be an integer"}), 400
+        if duration_minutes <= 0:
+            return jsonify({"success": False, "message": "duration_minutes must be positive"}), 400
 
     if not title or not start_raw:
         return jsonify({"success": False, "message": "title and start are required"}), 400
@@ -170,7 +180,7 @@ def sync_calendar():
     except (ValueError, TypeError):
         return jsonify({"success": False, "message": "Invalid start timestamp"}), 400
 
-    end_time = start_time + timedelta(minutes=int(duration_minutes))
+    end_time = start_time + timedelta(minutes=duration_minutes)
 
     meeting = Meeting(
         title=title,
@@ -219,7 +229,6 @@ def create_structured_event():
     description = payload.get("description")
     start_raw = payload.get("start")
     end_raw = payload.get("end")
-    duration_minutes = int(payload.get("duration_minutes") or 60)
     location = payload.get("location")
     notifications = payload.get("notifications") or payload.get("reminders") or []
     time_zone = payload.get("time_zone") or "UTC"
@@ -227,6 +236,17 @@ def create_structured_event():
 
     if not title or not start_raw:
         return jsonify({"success": False, "message": "title and start are required"}), 400
+
+    raw_duration = payload.get("duration_minutes")
+    if raw_duration is None or raw_duration == "":
+        duration_minutes = 60
+    else:
+        try:
+            duration_minutes = int(raw_duration)
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "message": "duration_minutes must be an integer"}), 400
+        if duration_minutes <= 0:
+            return jsonify({"success": False, "message": "duration_minutes must be positive"}), 400
 
     try:
         start_time = to_naive_utc(parser.parse(start_raw))

@@ -30,11 +30,17 @@ def create_meeting():
 
     title = (payload.get("title") or "").strip()
     start_time = payload.get("start_time")
-    duration = int(payload.get("duration", 30))
     description = payload.get("description")
 
     if not title or not start_time:
         return jsonify({"message": "Title and start_time are required"}), 400
+
+    try:
+        duration = int(payload.get("duration", 30))
+    except (TypeError, ValueError):
+        return jsonify({"message": "duration must be an integer number of minutes"}), 400
+    if duration <= 0:
+        return jsonify({"message": "duration must be a positive number of minutes"}), 400
 
     try:
         start_dt = to_naive_utc(datetime.fromisoformat(start_time))
@@ -68,7 +74,13 @@ def update_meeting(meeting_id: str):
     if "description" in payload:
         meeting.description = payload["description"]
     if "duration" in payload:
-        meeting.duration_minutes = int(payload["duration"])
+        try:
+            duration = int(payload["duration"])
+        except (TypeError, ValueError):
+            return jsonify({"message": "duration must be an integer number of minutes"}), 400
+        if duration <= 0:
+            return jsonify({"message": "duration must be a positive number of minutes"}), 400
+        meeting.duration_minutes = duration
     if "start_time" in payload:
         try:
             meeting.start_time = to_naive_utc(datetime.fromisoformat(payload["start_time"]))
