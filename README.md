@@ -40,6 +40,8 @@ pip install -r requirements.txt
 cp .env.example .env
 # edit .env
 flask db upgrade
+# Debug mode (Werkzeug reloader + debugger) is off by default; enable it
+# only for local development by setting FLASK_DEBUG=true in .env.
 python run.py
 ```
 
