@@ -86,7 +86,7 @@ class Meeting(BaseModel, db.Model):
 
     owner_id = db.Column(
         db.String(36),
-        db.ForeignKey("users.id"),
+        db.ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -112,7 +112,9 @@ class Note(BaseModel, db.Model):
 
     content = db.Column(db.Text, nullable=False)
     user_id = db.Column(
-        db.String(36), db.ForeignKey("users.id"), nullable=False
+        db.String(36),
+        db.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
     )
     owner = db.relationship("User", back_populates="notes")
 
@@ -133,7 +135,9 @@ class Log(BaseModel, db.Model):
     source = db.Column(db.String(120), nullable=True)
     extra_data = db.Column(JSON, nullable=True)
     user_id = db.Column(
-        db.String(36), db.ForeignKey("users.id"), nullable=True
+        db.String(36),
+        db.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=True,
     )
     user = db.relationship("User", back_populates="logs")
 
