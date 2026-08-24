@@ -1,4 +1,4 @@
-"""Regression tests: meetings are scoped to their owner in routes/meetings.py."""
+"""Regression tests for meeting ownership and validation in meetings.py."""
 from app.extensions import db
 from app.models import Meeting
 
@@ -6,12 +6,18 @@ from app.models import Meeting
 def _create_meeting_via_api(client, headers, title="Team sync"):
     return client.post(
         "/api/meetings",
-        json={"title": title, "start_time": "2026-09-01T10:00:00", "duration": 45},
+        json={
+            "title": title,
+            "start_time": "2026-09-01T10:00:00",
+            "duration": 45,
+        },
         headers=headers,
     )
 
 
-def test_owner_can_list_create_update_delete_own_meetings(app, client, user_factory, auth_headers):
+def test_owner_can_list_create_update_delete_own_meetings(
+    app, client, user_factory, auth_headers
+):
     user = user_factory(email="owner@example.com")
     headers = auth_headers(user.id)
 
@@ -24,7 +30,9 @@ def test_owner_can_list_create_update_delete_own_meetings(app, client, user_fact
     assert [m["id"] for m in listed.get_json()["meetings"]] == [meeting_id]
 
     updated = client.put(
-        f"/api/meetings/{meeting_id}", json={"title": "Renamed"}, headers=headers
+        f"/api/meetings/{meeting_id}",
+        json={"title": "Renamed"},
+        headers=headers,
     )
     assert updated.status_code == 200
     assert updated.get_json()["meeting"]["title"] == "Renamed"
@@ -54,11 +62,15 @@ def test_other_user_cannot_see_update_or_delete_foreign_meeting(
 
     # Direct access to the foreign id must 404, not leak data.
     fetched = client.put(
-        f"/api/meetings/{meeting_id}", json={"title": "Hijacked"}, headers=intruder_headers
+        f"/api/meetings/{meeting_id}",
+        json={"title": "Hijacked"},
+        headers=intruder_headers,
     )
     assert fetched.status_code == 404
 
-    deleted = client.delete(f"/api/meetings/{meeting_id}", headers=intruder_headers)
+    deleted = client.delete(
+        f"/api/meetings/{meeting_id}", headers=intruder_headers
+    )
     assert deleted.status_code == 404
 
     # The owner's meeting is untouched.
@@ -67,3 +79,48 @@ def test_other_user_cannot_see_update_or_delete_foreign_meeting(
         assert meeting is not None
         assert meeting.title == "Team sync"
         assert meeting.owner_id == owner.id
+
+
+def test_create_meeting_title_validation(client, user_factory, auth_headers):
+    user = user_factory(email="validation_create@example.com")
+    headers = auth_headers(user.id)
+
+    # Non-string title
+    resp = client.post(
+        "/api/meetings",
+        json={"title": 12345, "start_time": "2026-09-01T10:00:00"},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+    # Exceeding 255 chars
+    resp = client.post(
+        "/api/meetings",
+        json={"title": "a" * 256, "start_time": "2026-09-01T10:00:00"},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+
+def test_update_meeting_title_validation(client, user_factory, auth_headers):
+    user = user_factory(email="validation_update@example.com")
+    headers = auth_headers(user.id)
+
+    created = _create_meeting_via_api(client, headers)
+    meeting_id = created.get_json()["meeting"]["id"]
+
+    # Non-string title on update
+    resp = client.put(
+        f"/api/meetings/{meeting_id}",
+        json={"title": 12345},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+    # Exceeding 255 chars on update
+    resp = client.put(
+        f"/api/meetings/{meeting_id}",
+        json={"title": "a" * 256},
+        headers=headers,
+    )
+    assert resp.status_code == 400
