@@ -116,6 +116,13 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
     await startListeningInternal();
   };
 
+  const getAriaLabel = () => {
+    if (isListening) return 'Stop listening';
+    if (isPlayingAudio) return 'Interrupt AI response';
+    if (isFirstInteraction) return 'Start voice assistant';
+    return 'Start voice input';
+  };
+
   const startListeningInternal = async () => {
     try {
       setIsListening(true);
@@ -140,7 +147,8 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
           type="button"
           onClick={handleInteraction}
           disabled={Boolean(error)}
-          className={`relative p-8 rounded-full transition-all duration-300 ${
+          aria-label={getAriaLabel()}
+          className={`relative p-8 rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-primary-300 ${
             isListening 
               ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
               : isPlayingAudio 

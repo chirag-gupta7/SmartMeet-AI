@@ -39,7 +39,7 @@ describe('VoiceInput greeting fetch regression (M3)', () => {
       <VoiceInput onTranscript={jest.fn()} onProcessing={jest.fn()} responseMessage="" authUrl={null} />
     );
 
-    const button = await screen.findByRole('button');
+    const button = await screen.findByRole('button', { name: 'Start voice assistant' });
     expect(button).not.toBeDisabled();
 
     fireEvent.click(button);
@@ -47,5 +47,22 @@ describe('VoiceInput greeting fetch regression (M3)', () => {
     await waitFor(() =>
       expect(api.get).toHaveBeenCalledWith('/api/voice/greeting')
     );
+  });
+
+  test('VoiceInput button has dynamic aria-label reflecting state', async () => {
+    api.get.mockResolvedValue({ data: { success: false } });
+
+    render(
+      <VoiceInput onTranscript={jest.fn()} onProcessing={jest.fn()} responseMessage="" authUrl={null} />
+    );
+
+    const buttonInitial = screen.getByRole('button', { name: 'Start voice assistant' });
+    expect(buttonInitial).toBeInTheDocument();
+
+    fireEvent.click(buttonInitial);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Start voice input' })).toBeInTheDocument();
+    });
   });
 });
