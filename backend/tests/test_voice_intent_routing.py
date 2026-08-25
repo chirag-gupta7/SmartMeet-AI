@@ -2,12 +2,15 @@
 reach VoiceCommandProcessor.detect_and_process via /api/voice/process."""
 from unittest.mock import patch
 
-from app.extensions import db
 from app.models import Note
 
 
 def _post_transcript(client, headers, transcript):
-    return client.post("/api/voice/process", json={"transcript": transcript}, headers=headers)
+    return client.post(
+        "/api/voice/process",
+        json={"transcript": transcript},
+        headers=headers,
+    )
 
 
 def _general_llm():
@@ -54,6 +57,20 @@ def test_calculate_transcript_returns_computed_result(client, user_factory, auth
     data = resp.get_json()
     assert data["command_result"]["success"] is True
     assert data["command_result"]["data"]["result"] == 36
+
+
+def test_calculate_transcript_exponent_limit_prevents_dos(
+    client, user_factory, auth_headers
+):
+    user = user_factory(email="voice-calc-dos@example.com")
+    headers = auth_headers(user.id)
+
+    with _general_llm():
+        resp = _post_transcript(client, headers, "calculate 2**1000000")
+
+    data = resp.get_json()
+    assert data["command_result"]["success"] is False
+    assert "Exponent too large" in data["command_result"]["error"]
 
 
 def test_unmatched_general_transcript_keeps_llm_reply(client, user_factory, auth_headers):

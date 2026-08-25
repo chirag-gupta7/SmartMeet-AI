@@ -41,6 +41,12 @@ def _safe_eval(node: ast.expr) -> float:
     if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
         return node.value
     if isinstance(node, ast.BinOp) and type(node.op) in _SAFE_BIN_OPS:
+        if isinstance(node.op, ast.Pow):
+            left_val = _safe_eval(node.left)
+            right_val = _safe_eval(node.right)
+            if abs(right_val) > 1000:
+                raise ValueError("Exponent too large (max 1000)")
+            return left_val ** right_val
         return _SAFE_BIN_OPS[type(node.op)](_safe_eval(node.left), _safe_eval(node.right))
     if isinstance(node, ast.UnaryOp) and type(node.op) in _SAFE_UNARY_OPS:
         return _SAFE_UNARY_OPS[type(node.op)](_safe_eval(node.operand))
