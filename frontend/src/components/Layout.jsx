@@ -28,7 +28,9 @@ const Layout = () => {
 
               <Link
                 to="/settings"
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                aria-label="Settings"
+                title="Settings"
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
               >
                 <Settings className="h-5 w-5" />
               </Link>
@@ -36,7 +38,9 @@ const Layout = () => {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                aria-label="Log out"
+                title="Log out"
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
               >
                 <LogOut className="h-5 w-5" />
               </button>
