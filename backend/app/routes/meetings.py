@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from ..extensions import db
-from ..models import Meeting, User
+from ..models import Meeting
 from ..timeutils import to_naive_utc
 
 meetings_bp = Blueprint("meetings", __name__)
@@ -28,19 +28,33 @@ def create_meeting():
     payload = request.get_json() or {}
     user_id = get_jwt_identity()
 
-    title = (payload.get("title") or "").strip()
+    raw_title = payload.get("title")
     start_time = payload.get("start_time")
     description = payload.get("description")
 
-    if not title or not start_time:
+    if (
+        not isinstance(raw_title, str)
+        or not raw_title.strip()
+        or not start_time
+    ):
         return jsonify({"message": "Title and start_time are required"}), 400
+
+    title = raw_title.strip()
+    if len(title) > 255:
+        return jsonify(
+            {"message": "Title must be 255 characters or fewer"}
+        ), 400
 
     try:
         duration = int(payload.get("duration", 30))
     except (TypeError, ValueError):
-        return jsonify({"message": "duration must be an integer number of minutes"}), 400
+        return jsonify(
+            {"message": "duration must be an integer number of minutes"}
+        ), 400
     if duration <= 0:
-        return jsonify({"message": "duration must be a positive number of minutes"}), 400
+        return jsonify(
+            {"message": "duration must be a positive number of minutes"}
+        ), 400
 
     try:
         start_dt = to_naive_utc(datetime.fromisoformat(start_time))
@@ -67,23 +81,40 @@ def update_meeting(meeting_id: str):
     payload = request.get_json() or {}
     user_id = get_jwt_identity()
 
-    meeting = Meeting.query.filter_by(id=meeting_id, owner_id=user_id).first_or_404()
+    meeting = Meeting.query.filter_by(
+        id=meeting_id, owner_id=user_id
+    ).first_or_404()
 
     if "title" in payload:
-        meeting.title = payload["title"].strip() or meeting.title
+        raw_title = payload.get("title")
+        if not isinstance(raw_title, str) or not raw_title.strip():
+            return jsonify({"message": "Title cannot be empty"}), 400
+        new_title = raw_title.strip()
+        if len(new_title) > 255:
+            return jsonify(
+                {"message": "Title must be 255 characters or fewer"}
+            ), 400
+        meeting.title = new_title
+
     if "description" in payload:
         meeting.description = payload["description"]
     if "duration" in payload:
         try:
             duration = int(payload["duration"])
         except (TypeError, ValueError):
-            return jsonify({"message": "duration must be an integer number of minutes"}), 400
+            return jsonify(
+                {"message": "duration must be an integer number of minutes"}
+            ), 400
         if duration <= 0:
-            return jsonify({"message": "duration must be a positive number of minutes"}), 400
+            return jsonify(
+                {"message": "duration must be a positive number of minutes"}
+            ), 400
         meeting.duration_minutes = duration
     if "start_time" in payload:
         try:
-            meeting.start_time = to_naive_utc(datetime.fromisoformat(payload["start_time"]))
+            meeting.start_time = to_naive_utc(
+                datetime.fromisoformat(payload["start_time"])
+            )
         except ValueError:
             return jsonify({"message": "start_time must be ISO8601"}), 400
 
@@ -96,7 +127,9 @@ def update_meeting(meeting_id: str):
 @jwt_required()
 def delete_meeting(meeting_id: str):
     user_id = get_jwt_identity()
-    meeting = Meeting.query.filter_by(id=meeting_id, owner_id=user_id).first_or_404()
+    meeting = Meeting.query.filter_by(
+        id=meeting_id, owner_id=user_id
+    ).first_or_404()
 
     db.session.delete(meeting)
     db.session.commit()
