@@ -1,13 +1,65 @@
 from datetime import datetime, timedelta, timezone as dt_timezone
+from functools import lru_cache
+import logging
 import re
 from zoneinfo import ZoneInfo
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
-import logging
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEZONE = "UTC"
+
+# BOLT OPTIMIZATION: Pre-compile regex patterns at module level to eliminate
+# dynamic pattern compilation overhead on every natural language date parse.
+_TIME_RANGE_PATTERNS = [
+    re.compile(
+        r"(\d{1,2}):(\d{2})\s*(am|pm)?\s*(?:to|until|till|-)\s*"
+        r"(\d{1,2}):(\d{2})\s*(am|pm)?",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(\d{1,2})\s*(am|pm)\s*(?:to|until|till|-)\s*(\d{1,2})\s*(am|pm)",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"from\s*(\d{1,2}):(\d{2})\s*(am|pm)?\s*(?:to|until|till|-)\s*"
+        r"(\d{1,2}):(\d{2})\s*(am|pm)?",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"from\s*(\d{1,2})\s*(am|pm)\s*(?:to|until|till|-)\s*"
+        r"(\d{1,2})\s*(am|pm)",
+        re.IGNORECASE,
+    ),
+]
+
+_TIME_PATTERNS = [
+    re.compile(r"(\d{1,2}):(\d{2})\s*(am|pm)", re.IGNORECASE),
+    re.compile(r"(\d{1,2})\s*(am|pm)", re.IGNORECASE),
+    re.compile(r"at\s*(\d{1,2}):(\d{2})", re.IGNORECASE),
+    re.compile(r"at\s*(\d{1,2})\s*(am|pm)", re.IGNORECASE),
+    re.compile(r"(\d{1,2}):(\d{2})", re.IGNORECASE),
+]
+
+_ALL_DAY_PATTERN = re.compile(r"\b(all[- ]?day|full[- ]?day)\b", re.IGNORECASE)
+_DIGIT_PATTERN = re.compile(r"\d")
+_MONTH_PATTERN = re.compile(
+    r"\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|"
+    r"jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|"
+    r"dec(?:ember)?)\b",
+    re.IGNORECASE,
+)
+_NEXT_WEEKDAY_PATTERNS = [
+    ("monday", re.compile(r"next\s+monday", re.IGNORECASE), 7),
+    ("tuesday", re.compile(r"next\s+tuesday", re.IGNORECASE), 8),
+    ("wednesday", re.compile(r"next\s+wednesday", re.IGNORECASE), 9),
+    ("thursday", re.compile(r"next\s+thursday", re.IGNORECASE), 10),
+    ("friday", re.compile(r"next\s+friday", re.IGNORECASE), 11),
+    ("saturday", re.compile(r"next\s+saturday", re.IGNORECASE), 12),
+    ("sunday", re.compile(r"next\s+sunday", re.IGNORECASE), 13),
+]
+_THIS_WEEKEND_PATTERN = re.compile(r"this\s+weekend", re.IGNORECASE)
 
 
 def _fallback_utc():
@@ -21,17 +73,26 @@ def _fallback_utc():
         return dt_timezone.utc
 
 
+# BOLT OPTIMIZATION: Memoize timezone resolution to prevent repeated ZoneInfo
+# instantiation and exception handling for identical timezone names.
+@lru_cache(maxsize=64)
 def resolve_timezone(timezone_name=None):
     """
     Resolve an IANA timezone name (e.g. "Asia/Kolkata") to a ZoneInfo,
-    falling back to UTC when the name is missing or unknown.
+    falling back to UTC when the name is missing or unknown. Memoized
+    with lru_cache to eliminate ZoneInfo instantiation overhead.
     """
     if not timezone_name:
         return _fallback_utc()
     try:
         return ZoneInfo(str(timezone_name))
-    except Exception as exc:  # invalid/unknown IANA name or missing tz database
-        logger.warning("Unknown timezone %r (%s); falling back to %s", timezone_name, exc, DEFAULT_TIMEZONE)
+    except Exception as exc:  # invalid/unknown IANA name or missing tz db
+        logger.warning(
+            "Unknown timezone %r (%s); falling back to %s",
+            timezone_name,
+            exc,
+            DEFAULT_TIMEZONE,
+        )
         return _fallback_utc()
 
 
@@ -48,270 +109,209 @@ def parse_natural_language_datetime(text, timezone_name=None):
     now = datetime.now(tzinfo_obj)
     is_all_day = False
     day_signal_found = False
-    
-    # Check for "all day" markers
-    if re.search(r'\b(all[- ]?day|full[- ]?day)\b', text):
+
+    # Check for "all day" markers using pre-compiled regex
+    if _ALL_DAY_PATTERN.search(text):
         is_all_day = True
-    
-    # Day/date detection - enhanced with more patterns
+
+    # Day/date detection - enhanced with pre-compiled patterns
     # NOTE: "day after tomorrow" must be checked before "tomorrow", otherwise
     # the substring match claims it and the event lands one day early.
-    if 'day after tomorrow' in text:
+    if "day after tomorrow" in text:
         day_signal_found = True
         base_date = now + timedelta(days=2)
-    elif 'tomorrow' in text:
+    elif "tomorrow" in text:
         day_signal_found = True
         base_date = now + timedelta(days=1)
-    elif 'today' in text:
+    elif "today" in text:
         day_signal_found = True
         base_date = now
-    elif re.search(r'next\s+monday', text, re.IGNORECASE):
-        day_signal_found = True
-        days_ahead = (7 - now.weekday()) % 7
-        if days_ahead == 0:
-            days_ahead = 7  # If today is Monday, go to next Monday
-        base_date = now + timedelta(days=days_ahead)
-    elif re.search(r'next\s+tuesday', text, re.IGNORECASE):
-        day_signal_found = True
-        days_ahead = (8 - now.weekday()) % 7
-        if days_ahead == 0:
-            days_ahead = 7
-        base_date = now + timedelta(days=days_ahead)
-    elif re.search(r'next\s+wednesday', text, re.IGNORECASE):
-        day_signal_found = True
-        days_ahead = (9 - now.weekday()) % 7
-        if days_ahead == 0:
-            days_ahead = 7
-        base_date = now + timedelta(days=days_ahead)
-    elif re.search(r'next\s+thursday', text, re.IGNORECASE):
-        day_signal_found = True
-        days_ahead = (10 - now.weekday()) % 7
-        if days_ahead == 0:
-            days_ahead = 7
-        base_date = now + timedelta(days=days_ahead)
-    elif re.search(r'next\s+friday', text, re.IGNORECASE):
-        day_signal_found = True
-        days_ahead = (11 - now.weekday()) % 7
-        if days_ahead == 0:
-            days_ahead = 7
-        base_date = now + timedelta(days=days_ahead)
-    elif re.search(r'next\s+saturday', text, re.IGNORECASE):
-        day_signal_found = True
-        days_ahead = (12 - now.weekday()) % 7
-        if days_ahead == 0:
-            days_ahead = 7
-        base_date = now + timedelta(days=days_ahead)
-    elif re.search(r'next\s+sunday', text, re.IGNORECASE):
-        day_signal_found = True
-        days_ahead = (13 - now.weekday()) % 7
-        if days_ahead == 0:
-            days_ahead = 7
-        base_date = now + timedelta(days=days_ahead)
-    elif re.search(r'this\s+weekend', text, re.IGNORECASE):
-        day_signal_found = True
-        # Assume this weekend means the upcoming Saturday
-        days_ahead = (5 - now.weekday()) % 7
-        base_date = now + timedelta(days=days_ahead)
-    elif 'next week' in text:
-        day_signal_found = True
-        base_date = now + timedelta(weeks=1)
-    elif 'next month' in text:
-        day_signal_found = True
-        base_date = now + relativedelta(months=1)
     else:
-        try:
-            base_date = parser.parse(text, fuzzy=True)
-            if base_date.tzinfo is None:
-                # dateutil returns naive datetimes; anchor them to the
-                # requested timezone so downstream math stays consistent.
-                base_date = base_date.replace(tzinfo=tzinfo_obj)
-            # Only trust the fuzzy fallback when the text contains real
-            # date/time evidence (a digit or a month name); otherwise the
-            # result is implausible noise fabricated from ordinary words.
-            if re.search(r'\d', text) or re.search(
-                r'\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|'
-                r'jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|'
-                r'dec(?:ember)?)\b',
-                text,
-            ):
+        matched_next_day = False
+        for _, pattern, target_offset in _NEXT_WEEKDAY_PATTERNS:
+            if pattern.search(text):
                 day_signal_found = True
-        except Exception as e:
-            logger.warning(f"Failed to parse date with dateutil: {e}")
-            base_date = now
-    
-    # Time detection with enhanced patterns
+                days_ahead = (target_offset - now.weekday()) % 7
+                if days_ahead == 0:
+                    days_ahead = 7
+                base_date = now + timedelta(days=days_ahead)
+                matched_next_day = True
+                break
+
+        if not matched_next_day:
+            if _THIS_WEEKEND_PATTERN.search(text):
+                day_signal_found = True
+                days_ahead = (5 - now.weekday()) % 7
+                base_date = now + timedelta(days=days_ahead)
+            elif "next week" in text:
+                day_signal_found = True
+                base_date = now + timedelta(weeks=1)
+            elif "next month" in text:
+                day_signal_found = True
+                base_date = now + relativedelta(months=1)
+            else:
+                try:
+                    base_date = parser.parse(text, fuzzy=True)
+                    if base_date.tzinfo is None:
+                        base_date = base_date.replace(tzinfo=tzinfo_obj)
+                    if _DIGIT_PATTERN.search(text) or _MONTH_PATTERN.search(
+                        text
+                    ):
+                        day_signal_found = True
+                except Exception as e:
+                    logger.warning(f"Failed to parse date with dateutil: {e}")
+                    base_date = now
+
+    # Time detection with pre-compiled patterns
     time_found = False
-    
-    # Look for time ranges (start and end time)
-    time_range_patterns = [
-        r'(\d{1,2}):(\d{2})\s*(am|pm)?\s*(?:to|until|till|-)\s*(\d{1,2}):(\d{2})\s*(am|pm)?',
-        r'(\d{1,2})\s*(am|pm)\s*(?:to|until|till|-)\s*(\d{1,2})\s*(am|pm)',
-        r'from\s*(\d{1,2}):(\d{2})\s*(am|pm)?\s*(?:to|until|till|-)\s*(\d{1,2}):(\d{2})\s*(am|pm)?',
-        r'from\s*(\d{1,2})\s*(am|pm)\s*(?:to|until|till|-)\s*(\d{1,2})\s*(am|pm)'
-    ]
-    
     end_datetime = None
-    
-    for pattern in time_range_patterns:
-        match = re.search(pattern, text)
+
+    for pattern in _TIME_RANGE_PATTERNS:
+        match = pattern.search(text)
         if match:
             time_found = True
             groups = match.groups()
-            
-            # Process start time
-            if len(groups) == 6:  # Full pattern with hours:minutes for both start and end
+
+            if len(groups) == 6:
                 start_hour = int(groups[0])
                 start_minute = int(groups[1])
                 start_ampm = groups[2]
-                
+
                 end_hour = int(groups[3])
                 end_minute = int(groups[4])
                 end_ampm = groups[5]
-                
-                # Handle AM/PM for start time
-                if start_ampm and start_ampm.lower() == 'pm' and start_hour != 12:
+
+                if start_ampm and start_ampm.lower() == "pm" and (
+                    start_hour != 12
+                ):
                     start_hour += 12
-                elif start_ampm and start_ampm.lower() == 'am' and start_hour == 12:
+                elif start_ampm and start_ampm.lower() == "am" and (
+                    start_hour == 12
+                ):
                     start_hour = 0
-                
-                # Handle AM/PM for end time
-                if end_ampm and end_ampm.lower() == 'pm' and end_hour != 12:
+
+                if end_ampm and end_ampm.lower() == "pm" and end_hour != 12:
                     end_hour += 12
-                elif end_ampm and end_ampm.lower() == 'am' and end_hour == 12:
+                elif end_ampm and end_ampm.lower() == "am" and end_hour == 12:
                     end_hour = 0
-                    
-            elif len(groups) == 4:  # Hours only pattern
+
+            elif len(groups) == 4:
                 start_hour = int(groups[0])
                 start_minute = 0
                 start_ampm = groups[1]
-                
+
                 end_hour = int(groups[2])
                 end_minute = 0
                 end_ampm = groups[3]
-                
-                # Handle AM/PM for start time
-                if start_ampm and start_ampm.lower() == 'pm' and start_hour != 12:
+
+                if start_ampm and start_ampm.lower() == "pm" and (
+                    start_hour != 12
+                ):
                     start_hour += 12
-                elif start_ampm and start_ampm.lower() == 'am' and start_hour == 12:
+                elif start_ampm and start_ampm.lower() == "am" and (
+                    start_hour == 12
+                ):
                     start_hour = 0
-                
-                # Handle AM/PM for end time
-                if end_ampm and end_ampm.lower() == 'pm' and end_hour != 12:
+
+                if end_ampm and end_ampm.lower() == "pm" and end_hour != 12:
                     end_hour += 12
-                elif end_ampm and end_ampm.lower() == 'am' and end_hour == 12:
+                elif end_ampm and end_ampm.lower() == "am" and end_hour == 12:
                     end_hour = 0
-            
-            # Set the start date/time
-            base_date = base_date.replace(hour=start_hour, minute=start_minute, second=0, microsecond=0)
-            
-            # Set the end date/time
-            end_datetime = base_date.replace(hour=end_hour, minute=end_minute, second=0, microsecond=0)
-            
-            # If end time is earlier than start time, assume it's on the next day
+
+            base_date = base_date.replace(
+                hour=start_hour, minute=start_minute, second=0, microsecond=0
+            )
+            end_datetime = base_date.replace(
+                hour=end_hour, minute=end_minute, second=0, microsecond=0
+            )
+
             if end_datetime < base_date:
                 end_datetime += timedelta(days=1)
-                
+
             break
-    
-    # If no time range found, look for single time
+
     if not time_found:
-        time_patterns = [
-            r'(\d{1,2}):(\d{2})\s*(am|pm)',
-            r'(\d{1,2})\s*(am|pm)',
-            r'at\s*(\d{1,2}):(\d{2})',
-            r'at\s*(\d{1,2})\s*(am|pm)',
-            r'(\d{1,2}):(\d{2})',
-        ]
-        
-        for pattern in time_patterns:
-            match = re.search(pattern, text)
+        for pattern in _TIME_PATTERNS:
+            match = pattern.search(text)
             if match:
                 time_found = True
                 groups = match.groups()
-                
-                if len(groups) == 3:  # HH:MM AM/PM
+
+                if len(groups) == 3:
                     hour = int(groups[0])
                     minute = int(groups[1])
                     ampm = groups[2]
-                    
-                    if ampm and ampm.lower() == 'pm' and hour != 12:
+
+                    if ampm and ampm.lower() == "pm" and hour != 12:
                         hour += 12
-                    elif ampm and ampm.lower() == 'am' and hour == 12:
+                    elif ampm and ampm.lower() == "am" and hour == 12:
                         hour = 0
-                        
+
                 elif len(groups) == 2:
-                    if groups[1] in ['am', 'pm']:  # HH AM/PM
+                    if groups[1] in ["am", "pm"]:
                         hour = int(groups[0])
                         minute = 0
                         ampm = groups[1]
-                        
-                        if ampm.lower() == 'pm' and hour != 12:
+
+                        if ampm.lower() == "pm" and hour != 12:
                             hour += 12
-                        elif ampm.lower() == 'am' and hour == 12:
+                        elif ampm.lower() == "am" and hour == 12:
                             hour = 0
-                    else:  # HH:MM (no AM/PM)
+                    else:
                         hour = int(groups[0])
                         minute = int(groups[1])
-                
-                base_date = base_date.replace(hour=hour, minute=minute, second=0, microsecond=0)
-                
-                # Default end time is 1 hour later
+
+                base_date = base_date.replace(
+                    hour=hour, minute=minute, second=0, microsecond=0
+                )
                 end_datetime = base_date + timedelta(hours=1)
                 break
-    
-    # Day-related keywords, used both by the all-day fallback below and to
-    # detect whether any day signal exists in the input at all.
-    day_keywords = ['tomorrow', 'today', 'monday', 'tuesday', 'wednesday', 
-                  'thursday', 'friday', 'saturday', 'sunday', 'next week', 'weekend']
-    
-    # If no time specification found and it's not explicitly an all-day
-    # event, a day keyword alone makes it an all-day event.
+
+    day_keywords = [
+        "tomorrow",
+        "today",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+        "next week",
+        "weekend",
+    ]
+
     if not time_found and not is_all_day:
         if any(keyword in text.lower() for keyword in day_keywords):
             is_all_day = True
-            # Set time to beginning of day
-            base_date = base_date.replace(hour=0, minute=0, second=0, microsecond=0)
-            # No end time for all-day events
+            base_date = base_date.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
             end_datetime = None
-    
-    # No day and no time signal anywhere in the input: report a real failure
-    # instead of silently scheduling the event at "now".
+
     if not time_found and not day_signal_found and not any(
         keyword in text.lower() for keyword in day_keywords
     ):
+        err_msg = (
+            f"Could not find any date or time information in: "
+            f"'{original_text}'"
+        )
         return {
-            'success': False,
-            'error': f"Could not find any date or time information in: '{original_text}'"
+            "success": False,
+            "error": err_msg,
         }
-    
-    # Build and return the result structure
-    result = {
-        'success': True,
-        'is_all_day': is_all_day,
-        'timezone': getattr(tzinfo_obj, 'key', DEFAULT_TIMEZONE)
-    }
-    
-    if is_all_day:
-        result['start_date'] = base_date.date()
-    else:
-        result['start_datetime'] = base_date
-        if end_datetime:
-            result['end_datetime'] = end_datetime
-            
-    return result
 
-# Test function
-if __name__ == "__main__":
-    test_cases = [
-        "Schedule a meeting tomorrow at 3pm",
-        "Create a doctor's appointment on Friday at 10am",
-        "Add a team lunch next Tuesday from 12pm to 1:30pm",
-        "Schedule an all-day conference on August 15",
-        "Meeting with John at 2:30pm today"
-    ]
-    
-    for case in test_cases:
-        result = parse_natural_language_datetime(case)
-        print(f"Input: {case}")
-        print(f"Result: {result}")
-        print()
+    result = {
+        "success": True,
+        "is_all_day": is_all_day,
+        "timezone": getattr(tzinfo_obj, "key", DEFAULT_TIMEZONE),
+    }
+
+    if is_all_day:
+        result["start_date"] = base_date.date()
+    else:
+        result["start_datetime"] = base_date
+        if end_datetime:
+            result["end_datetime"] = end_datetime
+
+    return result
