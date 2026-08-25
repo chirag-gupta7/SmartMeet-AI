@@ -491,8 +491,24 @@ class VoiceCommandProcessor:
     def take_note(self, note_text: str) -> Dict[str, Any]:
         """
         Take a note and save it with enhanced metadata.
+        Validates input length to prevent DB bloat and DoS attacks.
         """
-        logger.info(f"Taking note for user {self.user_id}: '{note_text}'")
+        if not note_text or not str(note_text).strip():
+            return {
+                'success': False,
+                'error': 'Note text cannot be empty.',
+                'user_message': 'Please provide content for your note.'
+            }
+
+        note_str = str(note_text).strip()
+        if len(note_str) > 10000:
+            return {
+                'success': False,
+                'error': 'Note text exceeds maximum allowed length of 10000 characters.',
+                'user_message': 'Note text is too long (maximum 10,000 characters).'
+            }
+
+        logger.info(f"Taking note for user {self.user_id}: '{note_str[:50]}...'")
         
         if not self.user_id:
             return {
@@ -506,13 +522,13 @@ class VoiceCommandProcessor:
                 try:
                     new_note = Note(
                         user_id=self.user_id,
-                        content=note_text
+                        content=note_str
                     )
                     db.session.add(new_note)
                     db.session.commit()
                     
                     logger.info(f"Note saved successfully with ID {new_note.id}")
-                    user_message = f"Note saved: {note_text[:50]}{'...' if len(note_text) > 50 else ''}"
+                    user_message = f"Note saved: {note_str[:50]}{'...' if len(note_str) > 50 else ''}"
                     
                     return {
                         'success': True,
