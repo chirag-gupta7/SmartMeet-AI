@@ -54,12 +54,13 @@ const Layout = () => {
       </main>
 
       {/* Mobile Bottom Nav */}
-      <div className="md:hidden fixed inset-x-0 bottom-0 bg-white border-t shadow-lg">
+      <nav aria-label="Mobile navigation" className="md:hidden fixed inset-x-0 bottom-0 bg-white border-t shadow-lg">
         <div className="flex justify-around py-2">
           <Link
             to="/"
-            className={`flex flex-col items-center text-xs ${
-              location.pathname === '/' ? 'text-primary-600' : 'text-gray-500'
+            aria-label="Meetings dashboard"
+            className={`flex flex-col items-center text-xs p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-lg ${
+              location.pathname === '/' ? 'text-primary-600 font-medium' : 'text-gray-500'
             }`}
           >
             <Calendar className="h-6 w-6" />
@@ -67,8 +68,9 @@ const Layout = () => {
           </Link>
           <Link
             to="/settings"
-            className={`flex flex-col items-center text-xs ${
-              location.pathname.includes('settings') ? 'text-primary-600' : 'text-gray-500'
+            aria-label="Settings"
+            className={`flex flex-col items-center text-xs p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-lg ${
+              location.pathname.includes('settings') ? 'text-primary-600 font-medium' : 'text-gray-500'
             }`}
           >
             <Settings className="h-6 w-6" />
@@ -77,13 +79,14 @@ const Layout = () => {
           <button
             type="button"
             onClick={handleLogout}
-            className="flex flex-col items-center text-xs text-gray-500"
+            aria-label="Log out"
+            className="flex flex-col items-center text-xs text-gray-500 p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-lg hover:text-gray-900"
           >
             <LogOut className="h-6 w-6" />
             <span>Logout</span>
           </button>
         </div>
-      </div>
+      </nav>
     </div>
   );
 };
