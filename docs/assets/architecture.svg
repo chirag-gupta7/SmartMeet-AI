@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="640" viewBox="0 0 1180 640" font-family="Segoe UI, -apple-system, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1D4ED8"/>
+      <stop offset="50%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="panelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F4F7FF"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563EB"/>
+    </marker>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#1E3A8A" flood-opacity="0.13"/>
+    </filter>
+  </defs>
+
+  <!-- background -->
+  <rect width="1180" height="640" rx="16" fill="#FBFCFF"/>
+
+  <!-- title pill -->
+  <rect x="410" y="26" width="360" height="44" rx="22" fill="url(#brandGrad)" filter="url(#softShadow)"/>
+  <text x="590" y="54" text-anchor="middle" font-size="17" font-weight="700" fill="#FFFFFF" letter-spacing="3">SYSTEM ARCHITECTURE</text>
+
+  <!-- ============ CLIENT PANEL ============ -->
+  <rect x="30" y="110" width="310" height="240" rx="14" fill="url(#panelGrad)" stroke="#DBEAFE" filter="url(#softShadow)"/>
+  <path d="M30 124 a14 14 0 0 1 14 -14 h282 a14 14 0 0 1 14 14 v34 H30 Z" fill="#2563EB"/>
+  <text x="185" y="145" text-anchor="middle" font-size="18" font-weight="700" fill="#FFFFFF">Client · React SPA</text>
+  <circle cx="56" cy="182" r="3.5" fill="#3B82F6"/>
+  <text x="70" y="187" font-size="13.5" fill="#334155">React 18 + React Router 6</text>
+  <circle cx="56" cy="212" r="3.5" fill="#3B82F6"/>
+  <text x="70" y="217" font-size="13.5" fill="#334155">Tailwind CSS responsive UI</text>
+  <circle cx="56" cy="242" r="3.5" fill="#3B82F6"/>
+  <text x="70" y="247" font-size="13.5" fill="#334155">Google OAuth sign-in</text>
+  <circle cx="56" cy="272" r="3.5" fill="#3B82F6"/>
+  <text x="70" y="277" font-size="13.5" fill="#334155">Web Speech API microphone</text>
+  <circle cx="56" cy="302" r="3.5" fill="#3B82F6"/>
+  <text x="70" y="307" font-size="13.5" fill="#334155">Axios client + auth context</text>
+  <text x="185" y="336" text-anchor="middle" font-size="12" fill="#64748B" font-style="italic">Dashboard · Login/Register · Settings</text>
+
+  <!-- ============ BACKEND PANEL ============ -->
+  <rect x="435" y="110" width="310" height="240" rx="14" fill="url(#panelGrad)" stroke="#DDD6FE" filter="url(#softShadow)"/>
+  <path d="M435 124 a14 14 0 0 1 14 -14 h282 a14 14 0 0 1 14 14 v34 H435 Z" fill="#7C3AED"/>
+  <text x="590" y="145" text-anchor="middle" font-size="18" font-weight="700" fill="#FFFFFF">API · Flask 3</text>
+  <circle cx="461" cy="182" r="3.5" fill="#8B5CF6"/>
+  <text x="475" y="187" font-size="13.5" fill="#334155">/api/auth — JWT + Bcrypt</text>
+  <circle cx="461" cy="212" r="3.5" fill="#8B5CF6"/>
+  <text x="475" y="217" font-size="13.5" fill="#334155">/api/meetings — event CRUD</text>
+  <circle cx="461" cy="242" r="3.5" fill="#8B5CF6"/>
+  <text x="475" y="247" font-size="13.5" fill="#334155">/api/calendar — sync + slots</text>
+  <circle cx="461" cy="272" r="3.5" fill="#8B5CF6"/>
+  <text x="475" y="277" font-size="13.5" fill="#334155">/api/voice — intent router</text>
+  <text x="590" y="330" text-anchor="middle" font-size="12" fill="#64748B" font-style="italic">LLM service · command processor · TTS</text>
+
+  <!-- ============ EXTERNAL PANEL ============ -->
+  <rect x="840" y="110" width="310" height="240" rx="14" fill="url(#panelGrad)" stroke="#BFDBFE" filter="url(#softShadow)"/>
+  <path d="M840 124 a14 14 0 0 1 14 -14 h282 a14 14 0 0 1 14 14 v34 H840 Z" fill="#1D4ED8"/>
+  <text x="995" y="145" text-anchor="middle" font-size="18" font-weight="700" fill="#FFFFFF">External Services</text>
+  <circle cx="866" cy="182" r="3.5" fill="#2563EB"/>
+  <text x="880" y="187" font-size="13.5" fill="#334155">HuggingFace — Llama 3 intents</text>
+  <circle cx="866" cy="212" r="3.5" fill="#2563EB"/>
+  <text x="880" y="217" font-size="13.5" fill="#334155">ElevenLabs — neural voices</text>
+  <circle cx="866" cy="242" r="3.5" fill="#2563EB"/>
+  <text x="880" y="247" font-size="13.5" fill="#334155">Google Calendar API (OAuth)</text>
+  <circle cx="866" cy="272" r="3.5" fill="#2563EB"/>
+  <text x="880" y="277" font-size="13.5" fill="#334155">OpenWeather · NewsAPI</text>
+  <text x="995" y="336" text-anchor="middle" font-size="12" fill="#64748B" font-style="italic">All optional — graceful fallbacks</text>
+
+  <!-- horizontal arrows -->
+  <line x1="340" y1="230" x2="429" y2="230" stroke="#2563EB" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="384" y="214" text-anchor="middle" font-size="12" font-weight="600" fill="#1E40AF">HTTPS · JSON</text>
+  <line x1="745" y1="230" x2="834" y2="230" stroke="#2563EB" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="789" y="214" text-anchor="middle" font-size="12" font-weight="600" fill="#1E40AF">SDK calls</text>
+
+  <!-- connector backend to DB -->
+  <line x1="590" y1="350" x2="590" y2="428" stroke="#2563EB" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="606" y="396" font-size="12" font-weight="600" fill="#1E40AF">SQLAlchemy ORM</text>
+
+  <!-- database cylinder -->
+  <g filter="url(#softShadow)">
+    <path d="M520 448 a70 18 0 0 0 140 0 v62 a70 18 0 0 1 -140 0 Z" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+    <ellipse cx="590" cy="448" rx="70" ry="18" fill="#DBEAFE" stroke="#2563EB" stroke-width="2"/>
+  </g>
+  <text x="590" y="492" text-anchor="middle" font-size="13" font-weight="700" fill="#1E40AF">SQLite / PostgreSQL</text>
+
+  <!-- models card -->
+  <rect x="700" y="430" width="240" height="100" rx="12" fill="#FFFFFF" stroke="#E2E8F0" filter="url(#softShadow)"/>
+  <text x="820" y="458" text-anchor="middle" font-size="13" font-weight="700" fill="#334155">Data Models</text>
+  <text x="820" y="480" text-anchor="middle" font-size="12.5" fill="#475569">User · Meeting · Note · Log</text>
+  <text x="820" y="500" text-anchor="middle" font-size="11.5" fill="#94A3B8">UUID keys · UTC timestamps</text>
+
+  <!-- security card -->
+  <rect x="240" y="430" width="280" height="130" rx="12" fill="#FFFFFF" stroke="#E2E8F0" filter="url(#softShadow)"/>
+  <text x="380" y="459" text-anchor="middle" font-size="13" font-weight="700" fill="#334155">Security Built-in</text>
+  <circle cx="270" cy="480" r="3" fill="#22C55E"/>
+  <text x="282" y="484" font-size="12" fill="#475569">Bcrypt password hashing</text>
+  <circle cx="270" cy="502" r="3" fill="#22C55E"/>
+  <text x="282" y="506" font-size="12" fill="#475569">JWT-protected endpoints</text>
+  <circle cx="270" cy="524" r="3" fill="#22C55E"/>
+  <text x="282" y="528" font-size="12" fill="#475569">Secret placeholder detection</text>
+  <circle cx="270" cy="546" r="3" fill="#22C55E"/>
+  <text x="282" y="550" font-size="12" fill="#475569">Sandboxed math evaluator</text>
+</svg>
