@@ -1,14 +1,13 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
-from dateutil import parser
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from ..extensions import db
 from ..models import Meeting
 from ..services import google_calendar
-from ..timeutils import to_naive_utc
+from ..timeutils import parse_iso_datetime, to_naive_utc
 
 calendar_bp = Blueprint("calendar", __name__)
 
@@ -176,7 +175,7 @@ def sync_calendar():
         return jsonify({"success": False, "message": "title and start are required"}), 400
 
     try:
-        start_time = to_naive_utc(parser.parse(start_raw))
+        start_time = to_naive_utc(parse_iso_datetime(start_raw))
     except (ValueError, TypeError):
         return jsonify({"success": False, "message": "Invalid start timestamp"}), 400
 
@@ -249,13 +248,13 @@ def create_structured_event():
             return jsonify({"success": False, "message": "duration_minutes must be positive"}), 400
 
     try:
-        start_time = to_naive_utc(parser.parse(start_raw))
+        start_time = to_naive_utc(parse_iso_datetime(start_raw))
     except (ValueError, TypeError):
         return jsonify({"success": False, "message": "Invalid start timestamp"}), 400
 
     try:
         end_time = (
-            to_naive_utc(parser.parse(end_raw))
+            to_naive_utc(parse_iso_datetime(end_raw))
             if end_raw
             else start_time + timedelta(minutes=duration_minutes)
         )
