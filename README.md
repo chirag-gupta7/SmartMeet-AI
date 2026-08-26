@@ -9,12 +9,36 @@
 An intelligent, voice-powered meeting assistant that pairs a modern React frontend
 with a secure Flask API — dictate meeting requests in plain language, let AI do the rest.
 
-[Features](#features) · [Architecture](#architecture) · [Voice Pipeline](#voice-pipeline) · [Tech Stack](#tech-stack) · [Quick Start](#quick-start) · [API Reference](#api-reference)
+[Features](#features) · [Screenshots](#screenshots) · [Architecture](#architecture) · [Voice Pipeline](#voice-pipeline) · [Tech Stack](#tech-stack) · [Quick Start](#quick-start) · [API Reference](#api-reference)
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-3.x-111827?style=for-the-badge&logo=flask&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![License](https://img.shields.io/badge/License-MIT-3B82F6?style=for-the-badge)
+
+</div>
+
+<a id="screenshots"></a>
+
+## 🖼️ A peek inside
+
+The interface was rebuilt from the ground up — a dark glass sidebar, gradient accents, soft cards, and a split-screen voice-first auth flow. Here's the real app running locally:
+
+<div align="center">
+
+<img src="docs/assets/screenshots/dashboard.png" alt="SmartMeet AI dashboard with meetings" width="820" />
+
+<p>
+  <img src="docs/assets/screenshots/login.png" alt="Login screen" width="392" />
+  <img src="docs/assets/screenshots/register.png" alt="Register screen" width="392" />
+</p>
+
+<p>
+  <img src="docs/assets/screenshots/dashboard-voice.png" alt="Voice scheduler panel" width="392" />
+  <img src="docs/assets/screenshots/settings.png" alt="Settings screen" width="392" />
+</p>
+
+<img src="docs/assets/screenshots/login-mobile.png" alt="Mobile login" width="220" />
 
 </div>
 

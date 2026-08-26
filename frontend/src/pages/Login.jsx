@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Calendar } from 'lucide-react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
+import GoogleButton from '../components/GoogleButton';
+import Logo from '../components/Logo';
+import { Mic, Sparkles, CalendarCheck, ShieldCheck } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login: passwordLogin, googleLogin: authGoogleLogin } = useAuth();
@@ -16,14 +19,10 @@ const Login = () => {
     setError('');
     setLoading(true);
     try {
-      // Route through AuthContext so the token AND user state update;
-      // the old raw-fetch version left the context empty and bounced
-      // the user straight back to /login.
       await authGoogleLogin(authResult.code);
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Google login failed');
-    } finally {
       setLoading(false);
     }
   };
@@ -32,13 +31,11 @@ const Login = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       await passwordLogin(email, password);
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to login');
-    } finally {
       setLoading(false);
     }
   };
@@ -51,83 +48,123 @@ const Login = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <Calendar className="h-12 w-12 text-primary-600 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-gray-900">SmartMeet AI</h1>
-          <p className="text-gray-600 mt-2">Sign in to your account</p>
+    <div className="min-h-screen lg:grid lg:grid-cols-2">
+      {/* ===== Brand Panel ===== */}
+      <div className="relative hidden overflow-hidden bg-sidebar-gradient lg:flex lg:flex-col lg:justify-between lg:p-12">
+        <div className="pointer-events-none absolute -left-16 -top-16 h-72 w-72 rounded-full bg-primary-500/30 blur-3xl animate-float" />
+        <div className="pointer-events-none absolute -bottom-20 right-0 h-80 w-80 rounded-full bg-fuchsia-500/25 blur-3xl animate-float" style={{ animationDelay: '2.5s' }} />
+
+        <div className="relative">
+          <Logo />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="relative max-w-md animate-fade-in-up">
+          <span className="pill bg-white/10 text-primary-200 ring-1 ring-white/15">
+            <Sparkles className="h-3.5 w-3.5" /> Voice-first scheduling
+          </span>
+          <h1 className="mt-5 text-4xl font-extrabold leading-tight text-white">
+            Meetings you can just <span className="text-primary-300">talk to.</span>
+          </h1>
+          <p className="mt-4 text-white/70">
+            Dictate a meeting in plain language and let the AI schedule it, sync your calendar, and confirm out loud.
+          </p>
+
+          <ul className="mt-8 space-y-4">
+            <Feature icon={Mic} text="Speak naturally — no forms, no clicking" />
+            <Feature icon={CalendarCheck} text="Real calendar events with smart time parsing" />
+            <Feature icon={ShieldCheck} text="JWT-secured, Bcrypt-hashed, private by design" />
+          </ul>
+        </div>
+
+        <p className="relative text-sm text-white/40">© {new Date().getFullYear()} SmartMeet AI</p>
+      </div>
+
+      {/* ===== Form Panel ===== */}
+      <div className="flex items-center justify-center bg-slate-50 px-4 py-12 sm:px-8">
+        <div className="w-full max-w-md animate-fade-in">
+          <div className="mb-8 flex items-center gap-2 lg:hidden">
+            <Logo variant="dark" withText={false} />
+          </div>
+          <h2 className="text-3xl font-extrabold text-ink-900">Welcome back</h2>
+          <p className="mt-2 text-ink-900/55">Sign in to pick up where you left off.</p>
+
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+            <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
               {error}
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="you@example.com"
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+            <div>
+              <label className="label-text" htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                className="input-field"
+                placeholder="you@example.com"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-primary-600 text-white py-2 rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Signing in…' : 'Sign In'}
-          </button>
-
-          <div className="mt-4 flex flex-col items-center">
-            <div className="relative w-full mb-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+            <div>
+              <label className="label-text" htmlFor="password">Password</label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  className="input-field pr-11"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((s) => !s)}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-xs font-semibold text-ink-900/45 hover:text-ink-900"
+                  aria-label={showPw ? 'Hide password' : 'Show password'}
+                >
+                  {showPw ? 'Hide' : 'Show'}
+                </button>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => googleLogin()}
-              className="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600 transition"
-              disabled={loading}
-            >
-              {loading ? 'Connecting…' : 'Sign in with Google (Calendar)'}
+            <button type="submit" disabled={loading} className="btn-primary w-full">
+              {loading ? 'Signing in…' : 'Sign in'}
             </button>
-          </div>
-        </form>
+          </form>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
-          Don't have an account?{' '}
-          <Link className="text-primary-600 font-semibold" to="/register">
-            Create one
-          </Link>
-        </p>
+          <div className="my-6 flex items-center gap-4">
+            <span className="h-px flex-1 bg-ink-900/10" />
+            <span className="text-xs font-medium uppercase tracking-wide text-ink-900/40">or</span>
+            <span className="h-px flex-1 bg-ink-900/10" />
+          </div>
+
+          <GoogleButton onClick={() => googleLogin()} loading={loading} label="Continue with Google Calendar" />
+
+          <p className="mt-8 text-center text-sm text-ink-900/55">
+            New here?{' '}
+            <Link to="/register" className="font-semibold text-primary-600 hover:text-primary-700">
+              Create an account
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
 };
+
+const Feature = ({ icon: Icon, text }) => (
+  <li className="flex items-start gap-3 text-sm text-white/85">
+    <span className="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/15">
+      <Icon className="h-4 w-4 text-primary-200" />
+    </span>
+    {text}
+  </li>
+);
 
 export default Login;

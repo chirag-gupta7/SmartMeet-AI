@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Mic, MicOff, Square } from 'lucide-react';
+import { Mic, Square, Volume2, ArrowRight } from 'lucide-react';
 import { voiceService } from '../services/voiceService';
 import api from '../services/api';
 
@@ -8,56 +8,38 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState(null);
-  
-  // State to track if this is the very first click
   const [isFirstInteraction, setIsFirstInteraction] = useState(true);
 
-  // Ref to hold the audio element so we can stop it programmatically
   const audioRef = useRef(new Audio());
 
   useEffect(() => {
     if (!voiceService.isSupported()) {
       setError('Voice recognition is not supported in this browser. Please use Chrome.');
     }
-
     const audioEl = audioRef.current;
-
-    // Cleanup audio on unmount
     return () => {
       if (audioEl) {
         audioEl.pause();
-        audioEl.src = "";
+        audioEl.src = '';
       }
     };
   }, []);
 
-  const playAudio = (base64Audio) => {
-    return new Promise((resolve) => {
-      if (!base64Audio) {
-        resolve();
-        return;
-      }
-
-      // Stop any currently playing audio
+  const playAudio = (base64Audio) =>
+    new Promise((resolve) => {
+      if (!base64Audio) return resolve();
       audioRef.current.pause();
-      
-      const audioSrc = `data:audio/mp3;base64,${base64Audio}`;
-      audioRef.current.src = audioSrc;
-      
+      audioRef.current.src = `data:audio/mp3;base64,${base64Audio}`;
       setIsPlayingAudio(true);
-      
       audioRef.current.onended = () => {
         setIsPlayingAudio(false);
         resolve();
       };
-      
-      audioRef.current.play().catch(e => {
-        console.error("Audio play failed", e);
+      audioRef.current.play().catch(() => {
         setIsPlayingAudio(false);
         resolve();
       });
     });
-  };
 
   const stopAudio = () => {
     if (audioRef.current) {
@@ -69,8 +51,6 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
 
   const handleInteraction = async () => {
     setError(null);
-
-    // CASE 1: Currently Listening -> User wants to STOP manually
     if (isListening) {
       voiceService.stopListening();
       setIsListening(false);
@@ -78,41 +58,27 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
       return;
     }
 
-    // CASE 2: First Time Interaction -> Play Greeting THEN Listen
     if (isFirstInteraction) {
-      setIsFirstInteraction(false); // Mark as done immediately
-      onProcessing(true); // Show loading state while fetching greeting
-      
+      setIsFirstInteraction(false);
+      onProcessing(true);
       try {
-        // Fetch greeting from backend via the shared axios instance so the
-        // configured API baseURL (and auth interceptor) are used - a bare
-        // relative fetch hit the frontend dev server, not the API.
         const response = await api.get('/api/voice/greeting');
         const data = response.data;
-
         if (data.success && data.audio_base64) {
-          // Play greeting
           await playAudio(data.audio_base64);
-          
-          // After greeting ends, automatically start listening
-          if (!audioRef.current.paused) return; // Edge case if user stopped it mid-way
+          if (!audioRef.current.paused) return;
           await startListeningInternal();
         } else {
-          // Fallback if no audio
           await startListeningInternal();
         }
       } catch (err) {
-        console.error("Greeting failed", err);
-        // Fail gracefully to just listening
+        console.error('Greeting failed', err);
         await startListeningInternal();
       }
       return;
     }
 
-    // CASE 3: Subsequent Interactions -> Interrupt Audio (if any) and Listen Immediately
-    if (isPlayingAudio) {
-      stopAudio();
-    }
+    if (isPlayingAudio) stopAudio();
     await startListeningInternal();
   };
 
@@ -127,11 +93,9 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
     try {
       setIsListening(true);
       onProcessing(true);
-      
       const result = await voiceService.startListening();
-      
       setTranscript(result);
-      onTranscript(result); // Pass to parent to handle sending to backend
+      onTranscript(result);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -140,75 +104,72 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
     }
   };
 
+  const stateClasses = isListening
+    ? 'bg-red-500 hover:bg-red-600'
+    : isPlayingAudio
+      ? 'bg-emerald-500 hover:bg-emerald-600'
+      : 'bg-brand-gradient hover:opacity-90';
+
   return (
-    <div className="space-y-4">
-      <div className="flex justify-center">
-        <button
-          type="button"
-          onClick={handleInteraction}
-          disabled={Boolean(error)}
-          aria-label={getAriaLabel()}
-          title={getAriaLabel()}
-          className={`relative p-8 rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-300 ${
-            isListening 
-              ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
-              : isPlayingAudio 
-                ? 'bg-green-500 hover:bg-green-600' // Visual cue for "AI Speaking"
-                : 'bg-primary-600 hover:bg-primary-700'
-          } ${error ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} shadow-lg hover:shadow-xl`}
-        >
-          {isListening ? (
-             <Square className="h-12 w-12 text-white fill-current" />
-          ) : isPlayingAudio ? (
-             <MicOff className="h-12 w-12 text-white" /> // Icon indicating you can click to interrupt
-          ) : (
-             <Mic className="h-12 w-12 text-white" />
-          )}
-
+    <div className="space-y-5">
+      <div className="flex flex-col items-center">
+        <div className="relative">
           {isListening && (
-            <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-75" />
+            <span className="absolute inset-0 rounded-full bg-red-400/60 animate-ring-pulse" />
           )}
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={handleInteraction}
+            disabled={Boolean(error)}
+            aria-label={getAriaLabel()}
+            title={getAriaLabel()}
+            className={`relative flex h-24 w-24 items-center justify-center rounded-full text-white shadow-glow transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-300 ${stateClasses} ${error ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105'}`}
+          >
+            {isListening ? (
+              <Square className="h-9 w-9 fill-current" />
+            ) : isPlayingAudio ? (
+              <Volume2 className="h-9 w-9" />
+            ) : (
+              <Mic className="h-9 w-9" />
+            )}
+          </button>
+        </div>
 
-      <div className="text-center">
-        {isListening && <p className="text-gray-600 animate-pulse">Listening...</p>}
-        {isPlayingAudio && <p className="text-green-600 font-medium">AI is speaking... (Click to interrupt)</p>}
-        {!isListening && !isPlayingAudio && !transcript && !error && (
-          <p className="text-gray-500">
-            {isFirstInteraction ? "Click to start Assistant" : "Click to speak again"}
-          </p>
-        )}
+        <p className="mt-4 text-sm font-medium text-ink-900/70">
+          {isListening && <span className="text-red-500 animate-pulse">Listening…</span>}
+          {isPlayingAudio && <span className="text-emerald-600">AI is speaking… (tap to interrupt)</span>}
+          {!isListening && !isPlayingAudio && !transcript && !error && (
+            <span className="text-ink-900/50">{isFirstInteraction ? 'Tap to start the assistant' : 'Tap to speak again'}</span>
+          )}
+        </p>
       </div>
 
       {transcript && (
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <p className="text-sm text-gray-500 mb-1">You said:</p>
-          <p className="text-gray-900">{transcript}</p>
+        <div className="rounded-2xl border border-ink-900/5 bg-slate-50 p-4">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-900/40">You said</p>
+          <p className="text-ink-900">“{transcript}”</p>
         </div>
       )}
 
       {(responseMessage || authUrl) && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-          {responseMessage && (
-            <p className="text-sm text-blue-800">{responseMessage}</p>
-          )}
+        <div className="rounded-2xl border border-primary-100 bg-primary-50/60 p-4">
+          {responseMessage && <p className="text-sm text-ink-900">{responseMessage}</p>}
           {authUrl && (
             <a
               href={authUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-glow transition hover:bg-primary-700"
             >
-              Authorize Google Calendar
+              Authorize Google Calendar <ArrowRight className="h-4 w-4" />
             </a>
           )}
         </div>
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-sm text-red-600">{error}</p>
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+          {error}
         </div>
       )}
     </div>
