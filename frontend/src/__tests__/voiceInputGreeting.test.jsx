@@ -65,4 +65,13 @@ describe('VoiceInput greeting fetch regression (M3)', () => {
       expect(screen.getByRole('button', { name: 'Start voice input' })).toBeInTheDocument();
     });
   });
+
+  test('VoiceInput renders status region with aria-live="polite"', () => {
+    render(
+      <VoiceInput onTranscript={jest.fn()} onProcessing={jest.fn()} responseMessage="" authUrl={null} />
+    );
+
+    const statusText = screen.getByText('Tap to start the assistant');
+    expect(statusText.parentElement).toHaveAttribute('aria-live', 'polite');
+  });
 });

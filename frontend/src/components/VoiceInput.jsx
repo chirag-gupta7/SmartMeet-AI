@@ -135,7 +135,7 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
           </button>
         </div>
 
-        <p className="mt-4 text-sm font-medium text-ink-900/70">
+        <p className="mt-4 text-sm font-medium text-ink-900/70" aria-live="polite">
           {isListening && <span className="text-red-500 animate-pulse">Listening…</span>}
           {isPlayingAudio && <span className="text-emerald-600">AI is speaking… (tap to interrupt)</span>}
           {!isListening && !isPlayingAudio && !transcript && !error && (
