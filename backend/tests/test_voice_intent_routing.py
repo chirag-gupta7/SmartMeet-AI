@@ -118,5 +118,34 @@ def test_schedule_meeting_action_still_takes_priority(client, user_factory, auth
 
         resp = _post_transcript(client, headers, "schedule lunch tomorrow at noon")
 
-        instance.create_calendar_event.assert_called_once_with("schedule lunch tomorrow at noon")
+        instance.create_calendar_event.assert_called_once_with(
+            "schedule lunch tomorrow at noon"
+        )
         assert resp.get_json()["message"] == "Scheduled!"
+
+
+def test_invalid_transcript_type_returns_400(
+    client, user_factory, auth_headers
+):
+    user = user_factory(email="voice-invalid-type@example.com")
+    headers = auth_headers(user.id)
+
+    resp = client.post(
+        "/api/voice/process",
+        json={"transcript": 12345},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+    assert resp.get_json()["message"] == "Transcript is required"
+
+
+def test_oversized_transcript_returns_400(
+    client, user_factory, auth_headers
+):
+    user = user_factory(email="voice-oversized@example.com")
+    headers = auth_headers(user.id)
+
+    oversized_text = "a" * 5001
+    resp = _post_transcript(client, headers, oversized_text)
+    assert resp.status_code == 400
+    assert "exceeds maximum allowed length" in resp.get_json()["message"]
