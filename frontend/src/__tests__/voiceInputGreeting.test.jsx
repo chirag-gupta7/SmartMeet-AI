@@ -65,4 +65,21 @@ describe('VoiceInput greeting fetch regression (M3)', () => {
       expect(screen.getByRole('button', { name: 'Start voice input' })).toBeInTheDocument();
     });
   });
+
+  test('triggers interaction on Ctrl+Space keydown', async () => {
+    api.get.mockResolvedValue({ data: { success: false } });
+
+    render(
+      <VoiceInput onTranscript={jest.fn()} onProcessing={jest.fn()} responseMessage="" authUrl={null} />
+    );
+
+    expect(screen.getByText(/or press/i)).toBeInTheDocument();
+    expect(screen.getByText('Ctrl + Space')).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { ctrlKey: true, code: 'Space', key: ' ' });
+
+    await waitFor(() =>
+      expect(api.get).toHaveBeenCalledWith('/api/voice/greeting')
+    );
+  });
 });
