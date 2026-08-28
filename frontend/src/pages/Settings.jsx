@@ -3,6 +3,10 @@ import { CalendarClock, RefreshCcw, UserCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { calendarService } from '../services/api';
 
+// BOLT OPTIMIZATION: Memoize Intl.DateTimeFormat at module scope to prevent
+// repeated expensive constructor calls on every component re-render.
+const fmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
 const Settings = () => {
   const { user } = useAuth();
   const [events, setEvents] = useState([]);
@@ -34,7 +38,6 @@ const Settings = () => {
   };
 
   const initials = (user?.name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
-  const fmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
   return (
     <div className="space-y-8 animate-fade-in">
