@@ -135,8 +135,9 @@ const Register = () => {
                 <button
                   type="button"
                   onClick={() => setShowPw((s) => !s)}
-                  className="absolute inset-y-0 right-0 flex items-center px-3 text-xs font-semibold text-ink-900/45 hover:text-ink-900"
+                  className="absolute inset-y-0 right-1 my-1 flex items-center rounded-lg px-2.5 text-xs font-semibold text-ink-900/45 hover:text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                   aria-label={showPw ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPw}
                 >
                   {showPw ? 'Hide' : 'Show'}
                 </button>
