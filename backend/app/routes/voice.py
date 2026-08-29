@@ -34,11 +34,25 @@ def get_greeting():
 @jwt_required()
 def process_voice():
     payload = request.get_json() or {}
-    transcript = payload.get("transcript") or payload.get("text")
+    raw_transcript = payload.get("transcript") or payload.get("text")
     include_audio = bool(payload.get("include_audio", True))
 
-    if not transcript:
-        return jsonify({"success": False, "message": "Transcript is required"}), 400
+    if not isinstance(raw_transcript, str) or not raw_transcript.strip():
+        return jsonify(
+            {"success": False, "message": "Transcript is required"}
+        ), 400
+
+    transcript = raw_transcript.strip()
+    if len(transcript) > 5000:
+        return jsonify(
+            {
+                "success": False,
+                "message": (
+                    "Transcript text exceeds maximum allowed length of "
+                    "5000 characters."
+                ),
+            }
+        ), 400
 
     user_id = get_jwt_identity()
     user = db.session.get(User, user_id)
@@ -56,12 +70,16 @@ def process_voice():
     if action == "schedule_meeting":
         command_result = processor.create_calendar_event(transcript)
 
-        # If scheduling failed due to missing creds/connection, surface auth URL
+        # If scheduling failed due to missing creds/connection, surface
+        # auth URL
         if command_result and not command_result.get("success"):
             err = (command_result.get("error") or "").lower()
             if "connect" in err or "cred" in err:
                 auth_url = get_auth_url()
-                reply = "I need permission to access your Google Calendar. Please click the button below to connect."
+                reply = (
+                    "I need permission to access your Google Calendar. "
+                    "Please click the button below to connect."
+                )
                 action_type = "auth_required"
     elif action == "weather" or "weather" in transcript.lower():
         command_result = processor.get_weather(location="current location")
