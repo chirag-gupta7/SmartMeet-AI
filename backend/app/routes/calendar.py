@@ -171,8 +171,17 @@ def sync_calendar():
         if duration_minutes <= 0:
             return jsonify({"success": False, "message": "duration_minutes must be positive"}), 400
 
-    if not title or not start_raw:
+    if not title or not start_raw or not isinstance(title, str):
         return jsonify({"success": False, "message": "title and start are required"}), 400
+
+    title = title.strip()
+    if not title:
+        return jsonify({"success": False, "message": "title and start are required"}), 400
+    if len(title) > 255:
+        return jsonify({"success": False, "message": "Title must be 255 characters or fewer"}), 400
+
+    if description and isinstance(description, str) and len(description) > 10000:
+        return jsonify({"success": False, "message": "Description must be 10000 characters or fewer"}), 400
 
     try:
         start_time = to_naive_utc(parse_iso_datetime(start_raw))
@@ -235,6 +244,15 @@ def create_structured_event():
 
     if not title or not start_raw:
         return jsonify({"success": False, "message": "title and start are required"}), 400
+
+    if len(title) > 255:
+        return jsonify({"success": False, "message": "Title must be 255 characters or fewer"}), 400
+
+    if description and isinstance(description, str) and len(description) > 10000:
+        return jsonify({"success": False, "message": "Description must be 10000 characters or fewer"}), 400
+
+    if location and isinstance(location, str) and len(location) > 255:
+        return jsonify({"success": False, "message": "Location must be 255 characters or fewer"}), 400
 
     raw_duration = payload.get("duration_minutes")
     if raw_duration is None or raw_duration == "":
