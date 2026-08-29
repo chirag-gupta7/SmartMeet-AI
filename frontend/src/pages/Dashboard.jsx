@@ -72,7 +72,13 @@ const Dashboard = () => {
           <p className="text-sm font-medium text-primary-600">{greeting} 👋</p>
           <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-ink-900">Your meetings</h1>
         </div>
-        <button type="button" onClick={() => setShowVoiceInput((v) => !v)} className="btn-primary">
+        <button
+          type="button"
+          onClick={() => setShowVoiceInput((v) => !v)}
+          aria-expanded={showVoiceInput}
+          aria-controls="voice-scheduler-panel"
+          className="btn-primary"
+        >
           <Plus className="h-5 w-5" />
           {showVoiceInput ? 'Close scheduler' : 'Schedule a meeting'}
         </button>
@@ -87,7 +93,7 @@ const Dashboard = () => {
 
       {/* Voice hero */}
       {showVoiceInput && (
-        <div className="card overflow-hidden animate-fade-in-up">
+        <div id="voice-scheduler-panel" className="card overflow-hidden animate-fade-in-up">
           <div className="bg-brand-gradient px-6 py-5 sm:px-8">
             <div className="flex items-center gap-2 text-white">
               <Sparkles className="h-5 w-5" />
