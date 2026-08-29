@@ -82,6 +82,22 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
     await startListeningInternal();
   };
 
+  const handleInteractionRef = useRef(handleInteraction);
+  useEffect(() => {
+    handleInteractionRef.current = handleInteraction;
+  });
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.code === 'Space' || e.key === ' ')) {
+        e.preventDefault();
+        handleInteractionRef.current();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const getAriaLabel = () => {
     if (isListening) return 'Stop listening';
     if (isPlayingAudio) return 'Interrupt AI response';
@@ -135,13 +151,20 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
           </button>
         </div>
 
-        <p className="mt-4 text-sm font-medium text-ink-900/70" aria-live="polite">
-          {isListening && <span className="text-red-500 animate-pulse">Listening…</span>}
-          {isPlayingAudio && <span className="text-emerald-600">AI is speaking… (tap to interrupt)</span>}
-          {!isListening && !isPlayingAudio && !transcript && !error && (
-            <span className="text-ink-900/50">{isFirstInteraction ? 'Tap to start the assistant' : 'Tap to speak again'}</span>
+        <div className="mt-4 flex flex-col items-center gap-1.5 text-sm font-medium text-ink-900/70">
+          <p aria-live="polite">
+            {isListening && <span className="text-red-500 animate-pulse">Listening…</span>}
+            {isPlayingAudio && <span className="text-emerald-600">AI is speaking… (tap to interrupt)</span>}
+            {!isListening && !isPlayingAudio && !transcript && !error && (
+              <span className="text-ink-900/50">{isFirstInteraction ? 'Tap to start the assistant' : 'Tap to speak again'}</span>
+            )}
+          </p>
+          {!error && (
+            <span className="inline-flex items-center gap-1 text-xs text-ink-900/40">
+              or press <kbd className="rounded border border-ink-900/20 bg-white px-1.5 py-0.5 text-[10px] font-semibold shadow-xs">Ctrl + Space</kbd>
+            </span>
           )}
-        </p>
+        </div>
       </div>
 
       {transcript && (
