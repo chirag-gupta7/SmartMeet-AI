@@ -283,8 +283,27 @@ class VoiceCommandProcessor:
         """
         Get the current weather for a location using OpenWeatherMap API.
         """
+        if not isinstance(location, str) or not location.strip():
+            return {
+                'success': False,
+                'error': 'Invalid location provided',
+                'user_message': 'Please provide a valid location.'
+            }
+
+        location = location.strip()
+        if len(location) > 100 or not re.match(r'^[\w ,.-]+$', location):
+            return {
+                'success': False,
+                'error': 'Invalid characters or length in location',
+                'user_message': (
+                    'Please provide a valid location name (letters, numbers, '
+                    'spaces, and punctuation like commas or hyphens up to 100 '
+                    'characters).'
+                )
+            }
+
         logger.info(f"Fetching weather for {location}...")
-        
+
         # If location is "current location", default to New York
         if location.lower() == "current location":
             location = "New York"
