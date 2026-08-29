@@ -3,6 +3,8 @@ import { CalendarDays, Plus, Clock, CalendarCheck, Sparkles, ArrowRight } from '
 import VoiceInput from '../components/VoiceInput';
 import { meetingService } from '../services/api';
 
+// BOLT OPTIMIZATION: Module-scoped Intl.DateTimeFormat reuse prevents repeated
+// object creation overhead during list rendering of meetings.
 const fmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
