@@ -4,7 +4,11 @@ import os
 from zoneinfo import ZoneInfo
 
 from flask import Blueprint, current_app, jsonify, request
-from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
+from flask_jwt_extended import (
+    create_access_token,
+    get_jwt_identity,
+    jwt_required,
+)
 from google_auth_oauthlib.flow import InstalledAppFlow
 from sqlalchemy.exc import IntegrityError
 
@@ -17,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def _validated_preference(value: str | None) -> str:
     allowed = {"local", "device"}
-    if value and value.lower() in allowed:
+    if isinstance(value, str) and value.lower() in allowed:
         return value.lower()
     return "local"
 
@@ -25,18 +29,44 @@ def _validated_preference(value: str | None) -> str:
 @auth_bp.post("/register")
 def register():
     payload = request.get_json() or {}
-    name = (payload.get("name") or "").strip()
-    email = (payload.get("email") or "").strip().lower()
-    password = payload.get("password")
-    calendar_preference = _validated_preference(payload.get("calendar_preference"))
+    raw_name = payload.get("name")
+    raw_email = payload.get("email")
+    raw_password = payload.get("password")
+    calendar_preference = _validated_preference(
+        payload.get("calendar_preference")
+        if isinstance(payload.get("calendar_preference"), str)
+        else None
+    )
+
+    if (
+        not isinstance(raw_name, str)
+        or not isinstance(raw_email, str)
+        or not isinstance(raw_password, str)
+    ):
+        return jsonify(
+            {"message": "Name, email, and password are required"}
+        ), 400
+
+    name = raw_name.strip()
+    email = raw_email.strip().lower()
+    password = raw_password
 
     if not all([name, email, password]):
-        return jsonify({"message": "Name, email, and password are required"}), 400
+        return jsonify(
+            {"message": "Name, email, and password are required"}
+        ), 400
+
+    if len(name) > 120 or len(email) > 255:
+        return jsonify(
+            {"message": "Input fields exceed maximum length limits"}
+        ), 400
 
     if User.query.filter_by(email=email).first():
         return jsonify({"message": "Email already registered"}), 409
 
-    user = User(name=name, email=email, calendar_preference=calendar_preference)
+    user = User(
+        name=name, email=email, calendar_preference=calendar_preference
+    )
     user.set_password(password)
     db.session.add(user)
     try:
@@ -54,12 +84,21 @@ def register():
 @auth_bp.post("/login")
 def login():
     payload = request.get_json() or {}
-    email = (payload.get("email") or "").strip().lower()
-    password = payload.get("password")
+    raw_email = payload.get("email")
+    raw_password = payload.get("password")
+
+    if not isinstance(raw_email, str) or not isinstance(raw_password, str):
+        return jsonify({"message": "Invalid email or password"}), 401
+
+    email = raw_email.strip().lower()
+    password = raw_password
+
+    if not email or not password:
+        return jsonify({"message": "Invalid email or password"}), 401
 
     user = User.query.filter_by(email=email).first()
 
-    if not user or not password or not user.check_password(password):
+    if not user or not user.check_password(password):
         return jsonify({"message": "Invalid email or password"}), 401
 
     access_token = create_access_token(identity=user.id)
@@ -85,9 +124,11 @@ def google_login():
     try:
         creds_file = os.path.join(os.getcwd(), "credentials.json")
 
-        # Must match EXACTLY the callback route in React (App.jsx: /auth/callback)
+        # Must match EXACTLY callback route in React (App.jsx: /auth/callback)
         # and one of the Authorized redirect URIs in Google Cloud Console.
-        frontend_url = (current_app.config.get("FRONTEND_URL") or "http://localhost:3000").rstrip("/")
+        frontend_url = (
+            current_app.config.get("FRONTEND_URL") or "http://localhost:3000"
+        ).rstrip("/")
         redirect_uri = f"{frontend_url}/auth/callback"
 
         # Debug logging to track what URI is being used
@@ -108,12 +149,18 @@ def google_login():
         creds = flow.credentials
 
         session = flow.authorized_session()
-        user_info = session.get("https://www.googleapis.com/userinfo/v2/me").json()
+        user_info = session.get(
+            "https://www.googleapis.com/userinfo/v2/me"
+        ).json()
         email = user_info.get("email")
-        name = user_info.get("name") or (email.split("@")[0] if email else None)
+        name = user_info.get("name") or (
+            email.split("@")[0] if email else None
+        )
 
         if not email:
-            return jsonify({"message": "Could not retrieve email from Google"}), 400
+            return jsonify(
+                {"message": "Could not retrieve email from Google"}
+            ), 400
 
         user = User.query.filter_by(email=email).first()
         if not user:
@@ -152,15 +199,26 @@ def update_user():
     payload = request.get_json() or {}
 
     if "name" in payload:
-        new_name = (payload.get("name") or "").strip()
-        if new_name:
-            user.name = new_name
+        raw_name = payload.get("name")
+        if not isinstance(raw_name, str) or not raw_name.strip():
+            return jsonify({"message": "Invalid name"}), 400
+        new_name = raw_name.strip()
+        if len(new_name) > 120:
+            return jsonify(
+                {"message": "Name must be 120 characters or fewer"}
+            ), 400
+        user.name = new_name
 
     if "calendar_preference" in payload:
-        user.calendar_preference = _validated_preference(payload.get("calendar_preference"))
+        raw_pref = payload.get("calendar_preference")
+        pref_str = raw_pref if isinstance(raw_pref, str) else None
+        user.calendar_preference = _validated_preference(pref_str)
 
     if "timezone" in payload:
-        tz_name = (payload.get("timezone") or "UTC").strip()
+        raw_tz = payload.get("timezone")
+        if not isinstance(raw_tz, str):
+            return jsonify({"message": "Invalid timezone"}), 400
+        tz_name = raw_tz.strip()
         try:
             ZoneInfo(tz_name)
         except Exception:
