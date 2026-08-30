@@ -66,10 +66,29 @@ describe('Settings calendar panel regression (M2/D3)', () => {
     await waitFor(() =>
       expect(calendarService.getEvents).toHaveBeenCalledTimes(2)
     );
-    expect(await screen.findByText('Calendar refreshed.')).toBeInTheDocument();
+    const statusMsg = await screen.findByText('Calendar refreshed.');
+    expect(statusMsg).toBeInTheDocument();
+    expect(statusMsg).toHaveAttribute('role', 'status');
+    expect(statusMsg).toHaveClass('text-emerald-600');
     await waitFor(() => expect(screen.getByText('Review')).toBeInTheDocument());
 
     // The always-failing bare POST /calendar/sync must not be used.
     expect(calendarService.sync).not.toHaveBeenCalled();
+  });
+
+  test('displays error message in red text and role="status" when sync fails', async () => {
+    calendarService.getEvents
+      .mockResolvedValueOnce({ source: 'local', events: [] })
+      .mockRejectedValueOnce(new Error('Network error'));
+
+    renderSettings();
+    await waitFor(() => expect(calendarService.getEvents).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByText('Sync now'));
+
+    const errorMsg = await screen.findByText('Failed to refresh calendar');
+    expect(errorMsg).toBeInTheDocument();
+    expect(errorMsg).toHaveAttribute('role', 'status');
+    expect(errorMsg).toHaveClass('text-red-600');
   });
 });

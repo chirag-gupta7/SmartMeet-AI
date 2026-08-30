@@ -12,6 +12,7 @@ const Settings = () => {
   const [events, setEvents] = useState([]);
   const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState('');
+  const [syncError, setSyncError] = useState(false);
 
   const loadEvents = async () => {
     try {
@@ -19,19 +20,24 @@ const Settings = () => {
       setEvents(data.events || []);
     } catch (error) {
       console.error('Failed to load calendar events', error);
+      throw error;
     }
   };
 
-  useEffect(() => { loadEvents(); }, []);
+  useEffect(() => {
+    loadEvents().catch(() => {});
+  }, []);
 
   const handleSync = async () => {
     setSyncing(true);
     setMessage('');
+    setSyncError(false);
     try {
       await loadEvents();
       setMessage('Calendar refreshed.');
     } catch (error) {
       setMessage('Failed to refresh calendar');
+      setSyncError(true);
     } finally {
       setSyncing(false);
     }
@@ -72,13 +78,21 @@ const Settings = () => {
               Connect Google Calendar and keep your meetings in sync.
             </p>
           </div>
-          <button type="button" onClick={handleSync} disabled={syncing} className="btn-primary">
+          <button type="button" onClick={handleSync} disabled={syncing} aria-busy={syncing} className="btn-primary">
             <RefreshCcw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? 'Syncing…' : 'Sync now'}
           </button>
         </div>
 
-        {message && <p className="mt-4 text-sm font-medium text-emerald-600">{message}</p>}
+        {message && (
+          <p
+            role="status"
+            aria-live="polite"
+            className={`mt-4 text-sm font-medium ${syncError ? 'text-red-600' : 'text-emerald-600'}`}
+          >
+            {message}
+          </p>
+        )}
 
         <div className="mt-5 space-y-3">
           {events.length === 0 ? (
