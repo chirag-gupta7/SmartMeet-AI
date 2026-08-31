@@ -886,7 +886,27 @@ class VoiceCommandProcessor:
     
     def create_calendar_event(self, event_text: str) -> Dict[str, Any]:
         """Create a calendar event from natural language text."""
-        logger.info(f"Creating calendar event from: {event_text}")
+        if not isinstance(event_text, str) or not event_text.strip():
+            return {
+                'success': False,
+                'error': 'Event text cannot be empty.',
+                'user_message': 'Please provide details for the event.'
+            }
+
+        event_str = event_text.strip()
+        if len(event_str) > 10000:
+            return {
+                'success': False,
+                'error': (
+                    'Event text exceeds maximum allowed length of '
+                    '10000 characters.'
+                ),
+                'user_message': (
+                    'Event text is too long (maximum 10,000 characters).'
+                )
+            }
+
+        logger.info(f"Creating calendar event from: {event_str}")
 
         if not self.user_id:
             return self._calendar_not_connected()
@@ -895,7 +915,7 @@ class VoiceCommandProcessor:
             from .google_calendar import create_quick_event_for_user
 
             result = create_quick_event_for_user(
-                self.user_id, event_text, timezone_name=self.timezone_name
+                self.user_id, event_str, timezone_name=self.timezone_name
             )
 
             if result and result.get('success'):
