@@ -66,10 +66,20 @@ describe('Settings calendar panel regression (M2/D3)', () => {
     await waitFor(() =>
       expect(calendarService.getEvents).toHaveBeenCalledTimes(2)
     );
-    expect(await screen.findByText('Calendar refreshed.')).toBeInTheDocument();
+    const statusMsg = await screen.findByText('Calendar refreshed.');
+    expect(statusMsg).toBeInTheDocument();
+    expect(statusMsg).toHaveAttribute('role', 'status');
+    expect(statusMsg).toHaveAttribute('aria-live', 'polite');
     await waitFor(() => expect(screen.getByText('Review')).toBeInTheDocument());
 
     // The always-failing bare POST /calendar/sync must not be used.
     expect(calendarService.sync).not.toHaveBeenCalled();
+  });
+
+  test('Sync button has aria-busy and accessible label', async () => {
+    calendarService.getEvents.mockResolvedValue({ source: 'local', events: [] });
+    renderSettings();
+    const button = await screen.findByRole('button', { name: /sync calendar/i });
+    expect(button).toHaveAttribute('aria-busy', 'false');
   });
 });

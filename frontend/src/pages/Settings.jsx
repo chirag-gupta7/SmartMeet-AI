@@ -72,13 +72,24 @@ const Settings = () => {
               Connect Google Calendar and keep your meetings in sync.
             </p>
           </div>
-          <button type="button" onClick={handleSync} disabled={syncing} className="btn-primary">
+          <button
+            type="button"
+            onClick={handleSync}
+            disabled={syncing}
+            aria-busy={syncing}
+            aria-label={syncing ? 'Syncing calendar' : 'Sync calendar now'}
+            className="btn-primary"
+          >
             <RefreshCcw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? 'Syncing…' : 'Sync now'}
           </button>
         </div>
 
-        {message && <p className="mt-4 text-sm font-medium text-emerald-600">{message}</p>}
+        {message && (
+          <p role="status" aria-live="polite" className="mt-4 text-sm font-medium text-emerald-600">
+            {message}
+          </p>
+        )}
 
         <div className="mt-5 space-y-3">
           {events.length === 0 ? (
