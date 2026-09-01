@@ -136,10 +136,10 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
           <button
             type="button"
             onClick={handleInteraction}
-            disabled={Boolean(error)}
+            disabled={!voiceService.isSupported()}
             aria-label={getAriaLabel()}
             title={getAriaLabel()}
-            className={`relative flex h-24 w-24 items-center justify-center rounded-full text-white shadow-glow transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-300 ${stateClasses} ${error ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105'}`}
+            className={`relative flex h-24 w-24 items-center justify-center rounded-full text-white shadow-glow transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-300 ${stateClasses} ${!voiceService.isSupported() ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105'}`}
           >
             {isListening ? (
               <Square className="h-9 w-9 fill-current" />
@@ -191,8 +191,17 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
       )}
 
       {error && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
-          {error}
+        <div role="alert" className="flex items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+          <span>{error}</span>
+          {voiceService.isSupported() && (
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              className="rounded px-2 py-1 text-xs font-semibold underline hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+            >
+              Try again
+            </button>
+          )}
         </div>
       )}
     </div>
