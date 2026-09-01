@@ -91,4 +91,26 @@ describe('VoiceInput greeting fetch regression (M3)', () => {
       expect(api.get).toHaveBeenCalledWith('/api/voice/greeting')
     );
   });
+
+  test('renders error banner with role="alert" and allows retrying via "Try again" button', async () => {
+    voiceService.startListening.mockRejectedValueOnce(new Error('Speech recognition timeout'));
+    api.get.mockResolvedValue({ data: { success: false } });
+
+    render(
+      <VoiceInput onTranscript={jest.fn()} onProcessing={jest.fn()} responseMessage="" authUrl={null} />
+    );
+
+    const button = screen.getByRole('button', { name: 'Start voice assistant' });
+    fireEvent.click(button);
+
+    const alertBox = await screen.findByRole('alert');
+    expect(alertBox).toHaveTextContent('Speech recognition timeout');
+
+    const tryAgainBtn = screen.getByRole('button', { name: 'Try again' });
+    expect(tryAgainBtn).toBeInTheDocument();
+
+    fireEvent.click(tryAgainBtn);
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
 });

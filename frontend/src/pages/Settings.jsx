@@ -78,7 +78,11 @@ const Settings = () => {
           </button>
         </div>
 
-        {message && <p className="mt-4 text-sm font-medium text-emerald-600">{message}</p>}
+        {message && (
+          <p role="status" aria-live="polite" className={`mt-4 text-sm font-medium ${message.includes('Failed') ? 'text-red-600' : 'text-emerald-600'}`}>
+            {message}
+          </p>
+        )}
 
         <div className="mt-5 space-y-3">
           {events.length === 0 ? (

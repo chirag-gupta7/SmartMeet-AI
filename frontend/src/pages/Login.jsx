@@ -89,7 +89,7 @@ const Login = () => {
           <p className="mt-2 text-ink-900/55">Sign in to pick up where you left off.</p>
 
           {error && (
-            <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
               {error}
             </div>
           )}

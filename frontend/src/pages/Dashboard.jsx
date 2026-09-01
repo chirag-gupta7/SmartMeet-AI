@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarDays, Plus, Clock, CalendarCheck, Sparkles, ArrowRight } from 'lucide-react';
+import { CalendarDays, Plus, Clock, CalendarCheck, Sparkles, ArrowRight, X } from 'lucide-react';
 import VoiceInput from '../components/VoiceInput';
 import { meetingService } from '../services/api';
 
@@ -81,7 +81,7 @@ const Dashboard = () => {
           aria-controls="voice-scheduler-panel"
           className="btn-primary"
         >
-          <Plus className="h-5 w-5" />
+          {showVoiceInput ? <X className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
           {showVoiceInput ? 'Close scheduler' : 'Schedule a meeting'}
         </button>
       </div>
