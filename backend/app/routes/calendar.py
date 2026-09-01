@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -156,9 +156,39 @@ def sync_calendar():
     payload = request.get_json() or {}
     google_token = _get_google_access_token()
 
-    title = payload.get("title")
+    raw_title = payload.get("title")
     description = payload.get("description")
     start_raw = payload.get("start")
+
+    if not isinstance(raw_title, str) or not raw_title.strip() or not start_raw:
+        return jsonify(
+            {"success": False, "message": "title and start are required"}
+        ), 400
+
+    title = raw_title.strip()
+    if len(title) > 255:
+        return jsonify(
+            {
+                "success": False,
+                "message": "title must be 255 characters or fewer",
+            }
+        ), 400
+
+    if description is not None:
+        if not isinstance(description, str):
+            return jsonify(
+                {"success": False, "message": "description must be a string"}
+            ), 400
+        if len(description) > 10000:
+            return jsonify(
+                {
+                    "success": False,
+                    "message": (
+                        "description exceeds maximum allowed length of "
+                        "10000 characters"
+                    ),
+                }
+            ), 400
 
     raw_duration = payload.get("duration_minutes")
     if raw_duration is None or raw_duration == "":
@@ -170,9 +200,6 @@ def sync_calendar():
             return jsonify({"success": False, "message": "duration_minutes must be an integer"}), 400
         if duration_minutes <= 0:
             return jsonify({"success": False, "message": "duration_minutes must be positive"}), 400
-
-    if not title or not start_raw:
-        return jsonify({"success": False, "message": "title and start are required"}), 400
 
     try:
         start_time = to_naive_utc(parse_iso_datetime(start_raw))
@@ -224,7 +251,7 @@ def create_structured_event():
     payload = request.get_json() or {}
     google_token = _get_google_access_token()
 
-    title = (payload.get("title") or "").strip()
+    raw_title = payload.get("title")
     description = payload.get("description")
     start_raw = payload.get("start")
     end_raw = payload.get("end")
@@ -233,8 +260,48 @@ def create_structured_event():
     time_zone = payload.get("time_zone") or "UTC"
     raw_text = payload.get("raw_text")  # Optional companion text command
 
-    if not title or not start_raw:
-        return jsonify({"success": False, "message": "title and start are required"}), 400
+    if not isinstance(raw_title, str) or not raw_title.strip() or not start_raw:
+        return jsonify(
+            {"success": False, "message": "title and start are required"}
+        ), 400
+
+    title = raw_title.strip()
+    if len(title) > 255:
+        return jsonify(
+            {
+                "success": False,
+                "message": "title must be 255 characters or fewer",
+            }
+        ), 400
+
+    if description is not None:
+        if not isinstance(description, str):
+            return jsonify(
+                {"success": False, "message": "description must be a string"}
+            ), 400
+        if len(description) > 10000:
+            return jsonify(
+                {
+                    "success": False,
+                    "message": (
+                        "description exceeds maximum allowed length of "
+                        "10000 characters"
+                    ),
+                }
+            ), 400
+
+    if location is not None:
+        if not isinstance(location, str):
+            return jsonify(
+                {"success": False, "message": "location must be a string"}
+            ), 400
+        if len(location) > 255:
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "location must be 255 characters or fewer",
+                }
+            ), 400
 
     raw_duration = payload.get("duration_minutes")
     if raw_duration is None or raw_duration == "":
