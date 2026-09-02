@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { CalendarDays, Plus, Clock, CalendarCheck, Sparkles, ArrowRight } from 'lucide-react';
 import VoiceInput from '../components/VoiceInput';
 import { meetingService } from '../services/api';
@@ -29,18 +29,30 @@ const Dashboard = () => {
     }
   };
 
-  const sorted = [...meetings].sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+  // BOLT OPTIMIZATION: Memoize meeting sorting and date calculations in a single pass
+  // to avoid recalculating on unrelated state changes (e.g., toggling voice scheduler or processing status).
+  const { sorted, today, week } = useMemo(() => {
+    const sortedList = [...meetings].sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+    const now = new Date();
+    const todayStart = startOfDay(now).getTime();
+    const nextWeekEnd = startOfDay(addDays(now, 7)).getTime();
 
-  const now = new Date();
-  const today = sorted.filter((m) => {
-    const d = startOfDay(new Date(m.start_time));
-    const t = startOfDay(now);
-    return d.getTime() === t.getTime();
-  });
-  const week = sorted.filter((m) => {
-    const d = startOfDay(new Date(m.start_time)).getTime();
-    return d >= startOfDay(now).getTime() && d <= startOfDay(addDays(now, 7)).getTime();
-  });
+    const todayList = [];
+    const weekList = [];
+
+    for (let i = 0; i < sortedList.length; i++) {
+      const m = sortedList[i];
+      const mStart = startOfDay(new Date(m.start_time)).getTime();
+      if (mStart === todayStart) {
+        todayList.push(m);
+      }
+      if (mStart >= todayStart && mStart <= nextWeekEnd) {
+        weekList.push(m);
+      }
+    }
+
+    return { sorted: sortedList, today: todayList, week: weekList };
+  }, [meetings]);
 
   const handleVoiceTranscript = async (transcript) => {
     try {
@@ -64,6 +76,7 @@ const Dashboard = () => {
     }
   };
 
+  const now = new Date();
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening';
 
   return (
@@ -137,7 +150,8 @@ const Dashboard = () => {
   );
 };
 
-const StatCard = ({ icon: Icon, label, value, tint }) => {
+// BOLT OPTIMIZATION: Memoize child cards with React.memo to prevent re-rendering when Dashboard state changes.
+const StatCard = React.memo(({ icon: Icon, label, value, tint }) => {
   const tints = {
     primary: 'bg-primary-50 text-primary-600',
     emerald: 'bg-emerald-50 text-emerald-600',
@@ -154,9 +168,10 @@ const StatCard = ({ icon: Icon, label, value, tint }) => {
       </div>
     </div>
   );
-};
+});
 
-const MeetingCard = ({ meeting, style }) => {
+// BOLT OPTIMIZATION: Memoize child cards with React.memo to prevent re-rendering when Dashboard state changes.
+const MeetingCard = React.memo(({ meeting, style }) => {
   const d = new Date(meeting.start_time);
   const day = d.getDate();
   const month = MONTHS[d.getMonth()];
@@ -187,6 +202,6 @@ const MeetingCard = ({ meeting, style }) => {
       <ArrowRight className="hidden h-5 w-5 flex-none text-ink-900/25 transition group-hover:translate-x-1 group-hover:text-primary-500 sm:block" />
     </div>
   );
-};
+});
 
 export default Dashboard;
