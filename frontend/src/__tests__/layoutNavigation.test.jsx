@@ -29,4 +29,20 @@ describe('Layout component accessibility', () => {
     expect(logoutBtn).toBeInTheDocument();
     expect(logoutBtn.className).toContain('focus-visible:ring-2');
   });
+
+  test('renders skip to main content link targeting main content area', () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Layout />
+      </MemoryRouter>
+    );
+
+    const skipLink = screen.getByRole('link', { name: 'Skip to main content' });
+    expect(skipLink).toBeInTheDocument();
+    expect(skipLink).toHaveAttribute('href', '#main-content');
+
+    const mainElement = screen.getByRole('main');
+    expect(mainElement).toHaveAttribute('id', 'main-content');
+    expect(mainElement).toHaveAttribute('tabIndex', '-1');
+  });
 });
