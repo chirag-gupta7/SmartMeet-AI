@@ -38,3 +38,21 @@ def test_get_weather_empty_or_non_string():
         res = processor.get_weather(empty)
         assert res["success"] is False
         assert res["error"] == "Invalid location provided"
+
+
+def test_create_calendar_event_empty_or_non_string():
+    processor = VoiceCommandProcessor()
+    for empty in ["", "   ", None, 123]:
+        res = processor.create_calendar_event(empty)
+        assert res["success"] is False
+        assert res["error"] == "Invalid event text provided"
+
+
+def test_create_calendar_event_oversized():
+    processor = VoiceCommandProcessor()
+    long_event = "A" * 10001
+    res = processor.create_calendar_event(long_event)
+    assert res["success"] is False
+    assert res["error"] == (
+        "Event text exceeds maximum allowed length of 10000 characters."
+    )
