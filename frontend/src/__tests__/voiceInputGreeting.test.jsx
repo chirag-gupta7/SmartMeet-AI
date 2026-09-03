@@ -28,6 +28,7 @@ beforeEach(() => {
   localStorage.setItem('token', 'tok-1');
   // CRA's resetMocks wipes factory implementations, so set them per test.
   voiceService.isSupported.mockReturnValue(true);
+  voiceService.startListening.mockReturnValue(new Promise(() => {}));
 });
 
 describe('VoiceInput greeting fetch regression (M3)', () => {
@@ -49,7 +50,7 @@ describe('VoiceInput greeting fetch regression (M3)', () => {
     );
   });
 
-  test('VoiceInput button has dynamic aria-label reflecting state', async () => {
+  test('VoiceInput button has dynamic aria-label reflecting state and aria-busy when active', async () => {
     api.get.mockResolvedValue({ data: { success: false } });
 
     render(
@@ -58,11 +59,12 @@ describe('VoiceInput greeting fetch regression (M3)', () => {
 
     const buttonInitial = screen.getByRole('button', { name: 'Start voice assistant' });
     expect(buttonInitial).toBeInTheDocument();
+    expect(buttonInitial).toHaveAttribute('aria-busy', 'false');
 
     fireEvent.click(buttonInitial);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Start voice input' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Listening. Press to stop recording' })).toBeInTheDocument();
     });
   });
 
