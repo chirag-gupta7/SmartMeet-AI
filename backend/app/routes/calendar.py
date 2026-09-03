@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -156,9 +156,41 @@ def sync_calendar():
     payload = request.get_json() or {}
     google_token = _get_google_access_token()
 
-    title = payload.get("title")
-    description = payload.get("description")
+    raw_title = payload.get("title")
+    raw_description = payload.get("description")
     start_raw = payload.get("start")
+
+    if (
+        not isinstance(raw_title, str)
+        or not raw_title.strip()
+        or not start_raw
+    ):
+        return jsonify(
+            {"success": False, "message": "title and start are required"}
+        ), 400
+
+    title = raw_title.strip()
+    if len(title) > 255:
+        return jsonify(
+            {
+                "success": False,
+                "message": "Title must be 255 characters or fewer",
+            }
+        ), 400
+
+    if raw_description is not None:
+        if not isinstance(raw_description, str):
+            return jsonify(
+                {"success": False, "message": "description must be a string"}
+            ), 400
+        if len(raw_description) > 10000:
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "description exceeds 10,000 characters",
+                }
+            ), 400
+    description = raw_description
 
     raw_duration = payload.get("duration_minutes")
     if raw_duration is None or raw_duration == "":
@@ -167,17 +199,20 @@ def sync_calendar():
         try:
             duration_minutes = int(raw_duration)
         except (TypeError, ValueError):
-            return jsonify({"success": False, "message": "duration_minutes must be an integer"}), 400
+            return jsonify(
+                {"success": False, "message": "duration_minutes must be an integer"}
+            ), 400
         if duration_minutes <= 0:
-            return jsonify({"success": False, "message": "duration_minutes must be positive"}), 400
-
-    if not title or not start_raw:
-        return jsonify({"success": False, "message": "title and start are required"}), 400
+            return jsonify(
+                {"success": False, "message": "duration_minutes must be positive"}
+            ), 400
 
     try:
         start_time = to_naive_utc(parse_iso_datetime(start_raw))
     except (ValueError, TypeError):
-        return jsonify({"success": False, "message": "Invalid start timestamp"}), 400
+        return jsonify(
+            {"success": False, "message": "Invalid start timestamp"}
+        ), 400
 
     end_time = start_time + timedelta(minutes=duration_minutes)
 
@@ -224,17 +259,73 @@ def create_structured_event():
     payload = request.get_json() or {}
     google_token = _get_google_access_token()
 
-    title = (payload.get("title") or "").strip()
-    description = payload.get("description")
+    raw_title = payload.get("title")
+    raw_description = payload.get("description")
     start_raw = payload.get("start")
     end_raw = payload.get("end")
-    location = payload.get("location")
+    raw_location = payload.get("location")
     notifications = payload.get("notifications") or payload.get("reminders") or []
     time_zone = payload.get("time_zone") or "UTC"
     raw_text = payload.get("raw_text")  # Optional companion text command
 
-    if not title or not start_raw:
-        return jsonify({"success": False, "message": "title and start are required"}), 400
+    if (
+        not isinstance(raw_title, str)
+        or not raw_title.strip()
+        or not start_raw
+    ):
+        return jsonify(
+            {"success": False, "message": "title and start are required"}
+        ), 400
+
+    title = raw_title.strip()
+    if len(title) > 255:
+        return jsonify(
+            {
+                "success": False,
+                "message": "Title must be 255 characters or fewer",
+            }
+        ), 400
+
+    if raw_description is not None:
+        if not isinstance(raw_description, str):
+            return jsonify(
+                {"success": False, "message": "description must be a string"}
+            ), 400
+        if len(raw_description) > 10000:
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "description exceeds 10,000 characters",
+                }
+            ), 400
+    description = raw_description
+
+    if raw_location is not None:
+        if not isinstance(raw_location, str):
+            return jsonify(
+                {"success": False, "message": "location must be a string"}
+            ), 400
+        if len(raw_location) > 255:
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "location exceeds 255 characters",
+                }
+            ), 400
+    location = raw_location
+
+    if raw_text is not None:
+        if not isinstance(raw_text, str):
+            return jsonify(
+                {"success": False, "message": "raw_text must be a string"}
+            ), 400
+        if len(raw_text) > 10000:
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "raw_text exceeds 10,000 characters",
+                }
+            ), 400
 
     raw_duration = payload.get("duration_minutes")
     if raw_duration is None or raw_duration == "":
@@ -243,14 +334,20 @@ def create_structured_event():
         try:
             duration_minutes = int(raw_duration)
         except (TypeError, ValueError):
-            return jsonify({"success": False, "message": "duration_minutes must be an integer"}), 400
+            return jsonify(
+                {"success": False, "message": "duration_minutes must be an integer"}
+            ), 400
         if duration_minutes <= 0:
-            return jsonify({"success": False, "message": "duration_minutes must be positive"}), 400
+            return jsonify(
+                {"success": False, "message": "duration_minutes must be positive"}
+            ), 400
 
     try:
         start_time = to_naive_utc(parse_iso_datetime(start_raw))
     except (ValueError, TypeError):
-        return jsonify({"success": False, "message": "Invalid start timestamp"}), 400
+        return jsonify(
+            {"success": False, "message": "Invalid start timestamp"}
+        ), 400
 
     try:
         end_time = (
@@ -259,7 +356,9 @@ def create_structured_event():
             else start_time + timedelta(minutes=duration_minutes)
         )
     except (ValueError, TypeError):
-        return jsonify({"success": False, "message": "Invalid end timestamp"}), 400
+        return jsonify(
+            {"success": False, "message": "Invalid end timestamp"}
+        ), 400
 
     extra_data = {
         "location": location,
@@ -301,9 +400,14 @@ def create_structured_event():
             google_event_payload["location"] = location
 
         if reminder_overrides:
-            google_event_payload["reminders"] = {"useDefault": False, "overrides": reminder_overrides}
+            google_event_payload["reminders"] = {
+                "useDefault": False,
+                "overrides": reminder_overrides,
+            }
 
-        google_event = google_calendar.create_event(google_token, google_event_payload)
+        google_event = google_calendar.create_event(
+            google_token, google_event_payload
+        )
 
     response: Dict[str, Any] = {
         "success": True,
