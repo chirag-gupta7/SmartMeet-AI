@@ -99,8 +99,8 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
   }, []);
 
   const getAriaLabel = () => {
-    if (isListening) return 'Stop listening';
-    if (isPlayingAudio) return 'Interrupt AI response';
+    if (isListening) return 'Listening. Press to stop recording';
+    if (isPlayingAudio) return 'AI is speaking. Press to stop audio';
     if (isFirstInteraction) return 'Start voice assistant';
     return 'Start voice input';
   };
@@ -138,6 +138,7 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
             onClick={handleInteraction}
             disabled={Boolean(error)}
             aria-label={getAriaLabel()}
+            aria-busy={isPlayingAudio}
             title={getAriaLabel()}
             className={`relative flex h-24 w-24 items-center justify-center rounded-full text-white shadow-glow transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-300 ${stateClasses} ${error ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105'}`}
           >
