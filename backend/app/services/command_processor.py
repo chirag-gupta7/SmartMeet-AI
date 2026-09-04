@@ -886,7 +886,33 @@ class VoiceCommandProcessor:
     
     def create_calendar_event(self, event_text: str) -> Dict[str, Any]:
         """Create a calendar event from natural language text."""
-        logger.info(f"Creating calendar event from: {event_text}")
+        if (
+            not event_text
+            or not isinstance(event_text, str)
+            or not event_text.strip()
+        ):
+            return {
+                'success': False,
+                'error': 'Event text is required.',
+                'user_message': (
+                    'Please provide details for the calendar event.'
+                ),
+            }
+
+        event_text = event_text.strip()
+        if len(event_text) > 10000:
+            return {
+                'success': False,
+                'error': (
+                    'Event text exceeds maximum allowed length of 10000'
+                    ' characters.'
+                ),
+                'user_message': (
+                    'Event request is too long (maximum 10,000 characters).'
+                ),
+            }
+
+        logger.info(f"Creating calendar event from: {event_text[:50]}...")
 
         if not self.user_id:
             return self._calendar_not_connected()
