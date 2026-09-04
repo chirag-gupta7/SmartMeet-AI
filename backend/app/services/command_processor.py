@@ -391,7 +391,32 @@ class VoiceCommandProcessor:
         """
         Set a reminder for a future time.
         """
-        logger.info(f"Setting reminder: {text} for time: {when}")
+        if (
+            not isinstance(text, str)
+            or not text.strip()
+            or not isinstance(when, str)
+            or not when.strip()
+        ):
+            return {
+                'success': False,
+                'error': 'Text and when must be non-empty strings.',
+                'user_message': (
+                    'Please specify both what to remind you about and when.'
+                ),
+            }
+
+        text = text.strip()
+        when = when.strip()
+        if len(text) > 1000 or len(when) > 200:
+            return {
+                'success': False,
+                'error': (
+                    'Reminder text or time parameter exceeds character limit.'
+                ),
+                'user_message': 'Reminder text or time parameter is too long.',
+            }
+
+        logger.info(f"Setting reminder: {text[:50]} for time: {when[:50]}")
         
         # This is a placeholder for actual reminder setting
         # In a real implementation, we would use a persistent storage
@@ -419,12 +444,23 @@ class VoiceCommandProcessor:
             # Parse int if needed
             if isinstance(duration_minutes, str):
                 duration_minutes = int(duration_minutes)
-            
-            if duration_minutes <= 0:
+
+            if (
+                not isinstance(duration_minutes, int)
+                or isinstance(duration_minutes, bool)
+                or duration_minutes <= 0
+                or duration_minutes > 1440
+            ):
                 return {
                     'success': False,
-                    'error': 'Invalid duration',
-                    'user_message': 'Please specify a positive duration in minutes.'
+                    'error': (
+                        'Duration must be an integer between 1 and 1440'
+                        ' minutes (24 hours).'
+                    ),
+                    'user_message': (
+                        'Please specify a duration between 1 minute and 24'
+                        ' hours.'
+                    ),
                 }
                 
             timer_id = str(uuid.uuid4())
@@ -589,7 +625,24 @@ class VoiceCommandProcessor:
         """
         Perform a web search (placeholder for search API integration).
         """
-        logger.info(f"Performing web search for: {query}")
+        if not isinstance(query, str) or not query.strip():
+            return {
+                'success': False,
+                'error': 'Search query must be a non-empty string.',
+                'user_message': 'Please provide a search query.',
+            }
+
+        query = query.strip()
+        if len(query) > 500:
+            return {
+                'success': False,
+                'error': (
+                    'Search query exceeds maximum length of 500 characters.'
+                ),
+                'user_message': 'Search query is too long.',
+            }
+
+        logger.info(f"Performing web search for: {query[:50]}")
         
         # Demo response (integrate with real search API like Google Custom Search or Bing)
         return {
@@ -609,7 +662,33 @@ class VoiceCommandProcessor:
         """
         Translate text to another language (placeholder for translation API).
         """
-        logger.info(f"Translating '{text}' to {target_language}")
+        if (
+            not isinstance(text, str)
+            or not text.strip()
+            or not isinstance(target_language, str)
+            or not target_language.strip()
+        ):
+            return {
+                'success': False,
+                'error': 'Text and target_language must be non-empty strings.',
+                'user_message': (
+                    'Please provide valid text and target language.'
+                ),
+            }
+
+        text = text.strip()
+        target_language = target_language.strip()
+        if len(text) > 1000 or len(target_language) > 50:
+            return {
+                'success': False,
+                'error': (
+                    'Translation text or language parameter exceeds length'
+                    ' limit.'
+                ),
+                'user_message': 'Translation request is too long.',
+            }
+
+        logger.info(f"Translating '{text[:50]}' to {target_language[:50]}")
         
         # Demo response (integrate with Google Translate or similar)
         translations = {
@@ -637,10 +716,31 @@ class VoiceCommandProcessor:
         Uses an AST walk restricted to numeric literals and basic
         arithmetic operators; no dynamic execution of user input.
         """
-        logger.info(f"Calculating: {expression}")
+        if not isinstance(expression, str) or not expression.strip():
+            return {
+                'success': False,
+                'error': 'Expression must be a non-empty string.',
+                'user_message': (
+                    'Please provide a valid math expression to calculate.'
+                ),
+            }
+
+        expression = expression.strip()
+        if len(expression) > 500:
+            return {
+                'success': False,
+                'error': (
+                    'Expression exceeds maximum length of 500 characters.'
+                ),
+                'user_message': (
+                    'Math expression is too long (maximum 500 characters).'
+                ),
+            }
+
+        logger.info(f"Calculating: {expression[:50]}")
 
         try:
-            tree = ast.parse(str(expression), mode='eval')
+            tree = ast.parse(expression, mode='eval')
             result = _safe_eval(tree)
 
             return {
