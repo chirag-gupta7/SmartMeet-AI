@@ -42,3 +42,7 @@
 ## 2026-06-29 - [Memoized External API Calls]
 **Learning:** External API calls like ElevenLabs TTS and Hugging Face LLM are major bottlenecks due to network latency. Using `lru_cache` significantly improves responsiveness for repeated identical inputs.
 **Action:** Always consider memoization for idempotent external API calls, ensuring cache keys include configuration values to handle changes correctly.
+
+## 2026-07-15 - Dashboard Calculation Single-Pass Memoization
+**Learning:** Unmemoized array operations in React page components (such as sorting meetings and filtering by date on every render) cause redundant array allocations, Date instantiations, and DOM re-renders whenever local UI state (e.g. voice panel toggle or speech status) updates.
+**Action:** Use `useMemo` to combine multi-filter logic into a single-pass loop and memoize child presentation components with `React.memo`.
