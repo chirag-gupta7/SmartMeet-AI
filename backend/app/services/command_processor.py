@@ -52,6 +52,43 @@ def _safe_eval(node: ast.expr) -> float:
         return _SAFE_UNARY_OPS[type(node.op)](_safe_eval(node.operand))
     raise ValueError(f"Unsupported expression element: {type(node).__name__}")
 
+# BOLT OPTIMIZATION: Module-level pre-compiled regex patterns to avoid repeated
+# compilation overhead during intent detection and argument extraction.
+_WEATHER_LOCATION_EXTRACT_PATTERN = re.compile(
+    r"weather(?:\s+(?:in|at|for))?\s+([a-zA-Z0-9 ,.-]+)",
+    re.IGNORECASE,
+)
+_FACT_PATTERN = re.compile(r"\bfact\b", re.IGNORECASE)
+_TODAY_EVENT_PATTERN = re.compile(
+    r"\b(today'?s|for today)\b.*\b(event|meeting|calendar)\b",
+    re.IGNORECASE,
+)
+_NEXT_DAYS_PATTERN = re.compile(r"next\s+(\d+)\s+days?", re.IGNORECASE)
+_CALCULATE_PATTERN = re.compile(r"\bcalculate\s+(.+)", re.IGNORECASE)
+_TAKE_NOTE_PATTERN = re.compile(
+    r"\b(?:take a note|make a note|note that|remember(?: that)?)\s+(.+)",
+    re.IGNORECASE,
+)
+_WEB_SEARCH_PATTERN = re.compile(
+    r"\b(?:search(?:\s+for)?|look up)\s+(.+)",
+    re.IGNORECASE,
+)
+_TRANSLATE_PATTERN = re.compile(
+    r"\btranslate\s+(.+?)\s+(?:to|into)\s+([\w ]+)$",
+    re.IGNORECASE,
+)
+_SET_TIMER_PATTERN = re.compile(
+    r"\b(?:set|start)\s+a?\s*timer\s+for\s+(\d+)\s*(minutes?|mins?|seconds?)",
+    re.IGNORECASE,
+)
+_REMINDER_PATTERN = re.compile(
+    r"\bremind me to\s+(?P<task>.+?)\s+(?P<when>tomorrow|today|next \w+|at\s+.+|on\s+.+)$",
+    re.IGNORECASE,
+)
+_WEATHER_LOCATION_VALIDATE_PATTERN = re.compile(
+    r"^[\w ,.-]+$",
+)
+
 # Global reference to the Flask app instance, to be set by app.py
 _flask_app_instance_cp = None
 
@@ -116,8 +153,7 @@ class VoiceCommandProcessor:
                 logger.info(f"Detected weather intent in '{raw_command}', redirecting to weather command")
                 
                 # Try to extract location from the raw command
-                import re
-                location_match = re.search(r"weather(?:\s+(?:in|at|for))?\s+([a-zA-Z0-9 ,.-]+)", raw_command.lower())
+                location_match = _WEATHER_LOCATION_EXTRACT_PATTERN.search(raw_command)
                 location = "current location"
                 
                 if location_match and location_match.group(1).strip():
@@ -164,7 +200,7 @@ class VoiceCommandProcessor:
         # --- simple no-argument commands ---------------------------------
         if 'joke' in lowered:
             return self.process_command('joke')
-        if re.search(r'\bfact\b', lowered):
+        if _FACT_PATTERN.search(lowered):
             return self.process_command('fact')
         if 'news' in lowered or 'headline' in lowered:
             return self.process_command('news')
@@ -172,12 +208,12 @@ class VoiceCommandProcessor:
         # --- calendar queries --------------------------------------------
         if 'next meeting' in lowered or 'next event' in lowered:
             return self.process_command('calendar_next')
-        if re.search(r"\b(today'?s|for today)\b.*\b(event|meeting|calendar)\b", lowered) or (
+        if _TODAY_EVENT_PATTERN.search(lowered) or (
             'today' in lowered and 'calendar' in lowered
         ):
             return self.process_command('calendar_today')
         if 'upcoming' in lowered or 'coming week' in lowered:
-            match = re.search(r'next\s+(\d+)\s+days?', lowered)
+            match = _NEXT_DAYS_PATTERN.search(lowered)
             days = int(match.group(1)) if match else 7
             return self.process_command('calendar_upcoming', days=days)
         if 'free time' in lowered or 'free slot' in lowered or 'available' in lowered:
@@ -188,25 +224,19 @@ class VoiceCommandProcessor:
             return self.process_command('calendar_status')
 
         # --- commands that need extracted arguments -----------------------
-        calc = re.search(r'\bcalculate\s+(.+)', lowered)
+        calc = _CALCULATE_PATTERN.search(lowered)
         if calc:
             return self.process_command('calculate', expression=calc.group(1).strip())
 
-        note = re.search(
-            r'\b(?:take a note|make a note|note that|remember(?: that)?)\s+(.+)',
-            text,
-            re.IGNORECASE,
-        )
+        note = _TAKE_NOTE_PATTERN.search(text)
         if note and note.group(1).strip():
             return self.take_note(note.group(1).strip())
 
-        search = re.search(r'\b(?:search(?:\s+for)?|look up)\s+(.+)', text, re.IGNORECASE)
+        search = _WEB_SEARCH_PATTERN.search(text)
         if search and search.group(1).strip():
             return self.process_command('search', query=search.group(1).strip())
 
-        translate = re.search(
-            r'\btranslate\s+(.+?)\s+(?:to|into)\s+([\w ]+)$', text, re.IGNORECASE
-        )
+        translate = _TRANSLATE_PATTERN.search(text)
         if translate:
             return self.process_command(
                 'translate',
@@ -214,17 +244,13 @@ class VoiceCommandProcessor:
                 target_language=translate.group(2).strip().title(),
             )
 
-        timer = re.search(r'\b(?:set|start)\s+a?\s*timer\s+for\s+(\d+)\s*(minutes?|mins?|seconds?)', lowered)
+        timer = _SET_TIMER_PATTERN.search(lowered)
         if timer:
             amount = int(timer.group(1))
             duration_minutes = amount / 60 if timer.group(2).startswith(('s',)) else amount
             return self.set_timer(int(duration_minutes))
 
-        reminder = re.search(
-            r'\bremind me to\s+(?P<task>.+?)\s+(?P<when>tomorrow|today|next \w+|at\s+.+|on\s+.+)$',
-            text,
-            re.IGNORECASE,
-        )
+        reminder = _REMINDER_PATTERN.search(text)
         if reminder:
             return self.process_command(
                 'reminder',
@@ -291,7 +317,7 @@ class VoiceCommandProcessor:
             }
 
         location = location.strip()
-        if len(location) > 100 or not re.match(r'^[\w ,.-]+$', location):
+        if len(location) > 100 or not _WEATHER_LOCATION_VALIDATE_PATTERN.match(location):
             return {
                 'success': False,
                 'error': 'Invalid characters or length in location',

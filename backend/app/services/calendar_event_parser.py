@@ -8,6 +8,21 @@ from .datetime_parser import parse_natural_language_datetime, resolve_timezone
 
 logger = logging.getLogger(__name__)
 
+# BOLT OPTIMIZATION: Module-level pre-compiled regexes avoid repeated compilation
+# overhead on every manual event parse attempt.
+_SUMMARY_MATCH_PATTERN = re.compile(
+    r"(?:schedule|create|add)\s+(?:a\s+)?(.+?)"
+    r"(?:\s+(?:on|at|for|from)\s+.*|$)",
+    re.IGNORECASE,
+)
+_SUMMARY_CLEAN_PATTERN = re.compile(
+    r"(?:tomorrow|today|next week|next month|at \d{1,2}(?::\d{2})?\s*"
+    r"(?:am|pm)?|on \w+ \d{1,2}(?:st|nd|rd|th)?|\d{1,2}(?::\d{2})?\s*"
+    r"(?:am|pm)?).*",
+    re.IGNORECASE,
+)
+
+
 def create_event_manual_parse(conversation_text, get_calendar_service, timezone_name=None):
     """
     Manually parses conversation text to create a calendar event.
@@ -22,13 +37,13 @@ def create_event_manual_parse(conversation_text, get_calendar_service, timezone_
     summary = "Untitled Event"
     
     # Simple regex to find common patterns for event summary
-    # This regex is improved to be more robust
-    summary_match = re.search(r'(?:schedule|create|add)\s+(?:a\s+)?(.+?)(?:\s+(?:on|at|for|from)\s+.*|$)', conversation_text, re.IGNORECASE)
+    # Using pre-compiled regex patterns for optimal performance
+    summary_match = _SUMMARY_MATCH_PATTERN.search(conversation_text)
     if summary_match:
         summary = summary_match.group(1).strip()
         # Clean up summary if it contains time/date phrases that were part of the summary extraction
         # This is a heuristic and might need further refinement based on user input patterns
-        summary = re.sub(r'(?:tomorrow|today|next week|next month|at \d{1,2}(?::\d{2})?\s*(?:am|pm)?|on \w+ \d{1,2}(?:st|nd|rd|th)?|\d{1,2}(?::\d{2})?\s*(?:am|pm)?).*', '', summary, flags=re.IGNORECASE).strip()
+        summary = _SUMMARY_CLEAN_PATTERN.sub('', summary).strip()
         if not summary: # Fallback if regex removed everything
             summary = "New Event"
     else:
