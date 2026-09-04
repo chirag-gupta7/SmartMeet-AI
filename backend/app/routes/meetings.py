@@ -1,11 +1,9 @@
-from datetime import datetime
-
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from ..extensions import db
 from ..models import Meeting
-from ..timeutils import to_naive_utc
+from ..timeutils import parse_iso_datetime, to_naive_utc
 
 meetings_bp = Blueprint("meetings", __name__)
 
@@ -65,8 +63,10 @@ def create_meeting():
         ), 400
 
     try:
-        start_dt = to_naive_utc(datetime.fromisoformat(start_time))
-    except ValueError:
+        # BOLT OPTIMIZATION: Use parse_iso_datetime for standardized, fast
+        # ISO parsing
+        start_dt = to_naive_utc(parse_iso_datetime(start_time))
+    except (ValueError, TypeError):
         return jsonify({"message": "start_time must be ISO8601"}), 400
 
     meeting = Meeting(
@@ -137,10 +137,12 @@ def update_meeting(meeting_id: str):
         meeting.duration_minutes = duration
     if "start_time" in payload:
         try:
+            # BOLT OPTIMIZATION: Use parse_iso_datetime for standardized, fast
+            # ISO parsing
             meeting.start_time = to_naive_utc(
-                datetime.fromisoformat(payload["start_time"])
+                parse_iso_datetime(payload["start_time"])
             )
-        except ValueError:
+        except (ValueError, TypeError):
             return jsonify({"message": "start_time must be ISO8601"}), 400
 
     db.session.commit()

@@ -14,6 +14,7 @@ from flask import current_app
 
 from ..extensions import db
 from ..models import User
+from ..timeutils import parse_iso_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -141,12 +142,14 @@ def normalize_event(event: Dict[str, Any]) -> Dict[str, Any]:
     end_time = None
 
     try:
+        # BOLT OPTIMIZATION: Use fast native ISO parsing via parse_iso_datetime
+        # to handle 'Z' suffixes directly without intermediate string replaces.
         if start_val and "T" in start_val:
-            start_dt = datetime.fromisoformat(start_val.replace("Z", "+00:00"))
+            start_dt = parse_iso_datetime(start_val)
             date_str = start_dt.strftime("%B %d, %Y")
             start_time = start_dt.strftime("%I:%M %p")
         if end_val and "T" in end_val:
-            end_dt = datetime.fromisoformat(end_val.replace("Z", "+00:00"))
+            end_dt = parse_iso_datetime(end_val)
             end_time = end_dt.strftime("%I:%M %p")
     except ValueError as exc:
         logger.warning("Could not parse event times for %s: %s", event.get("id"), exc)
