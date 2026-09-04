@@ -45,6 +45,14 @@ def create_meeting():
             {"message": "Title must be 255 characters or fewer"}
         ), 400
 
+    if description is not None:
+        if not isinstance(description, str):
+            return jsonify({"message": "Description must be a string"}), 400
+        if len(description) > 10000:
+            return jsonify(
+                {"message": "Description must be 10,000 characters or fewer"}
+            ), 400
+
     try:
         duration = int(payload.get("duration", 30))
     except (TypeError, ValueError):
@@ -97,7 +105,24 @@ def update_meeting(meeting_id: str):
         meeting.title = new_title
 
     if "description" in payload:
-        meeting.description = payload["description"]
+        raw_desc = payload.get("description")
+        if raw_desc is not None:
+            if not isinstance(raw_desc, str):
+                return jsonify(
+                    {"message": "Description must be a string"}
+                ), 400
+            if len(raw_desc) > 10000:
+                return jsonify(
+                    {
+                        "message": (
+                            "Description must be 10,000 characters or fewer"
+                        )
+                    }
+                ), 400
+            meeting.description = raw_desc
+        else:
+            meeting.description = None
+
     if "duration" in payload:
         try:
             duration = int(payload["duration"])

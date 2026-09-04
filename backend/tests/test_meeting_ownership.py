@@ -102,6 +102,63 @@ def test_create_meeting_title_validation(client, user_factory, auth_headers):
     assert resp.status_code == 400
 
 
+def test_create_meeting_rejects_invalid_description(
+    client, user_factory, auth_headers
+):
+    user = user_factory(email="desc_create@example.com")
+    headers = auth_headers(user.id)
+
+    # Non-string description
+    resp = client.post(
+        "/api/meetings",
+        json={
+            "title": "Sync",
+            "start_time": "2026-09-01T10:00:00",
+            "description": 12345,
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+    # Oversized description (>10000 chars)
+    resp = client.post(
+        "/api/meetings",
+        json={
+            "title": "Sync",
+            "start_time": "2026-09-01T10:00:00",
+            "description": "a" * 10001,
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+
+def test_update_meeting_rejects_invalid_description(
+    client, user_factory, auth_headers
+):
+    user = user_factory(email="desc_update@example.com")
+    headers = auth_headers(user.id)
+
+    created = _create_meeting_via_api(client, headers)
+    meeting_id = created.get_json()["meeting"]["id"]
+
+    # Non-string description on update
+    resp = client.put(
+        f"/api/meetings/{meeting_id}",
+        json={"description": ["invalid"]},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+    # Oversized description on update
+    resp = client.put(
+        f"/api/meetings/{meeting_id}",
+        json={"description": "b" * 10001},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+
 def test_update_meeting_title_validation(client, user_factory, auth_headers):
     user = user_factory(email="validation_update@example.com")
     headers = auth_headers(user.id)
