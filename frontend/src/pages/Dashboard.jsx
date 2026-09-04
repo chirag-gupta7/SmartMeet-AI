@@ -138,6 +138,16 @@ const Dashboard = () => {
             <p className="mt-1 max-w-sm text-sm text-ink-900/55">
               Hit “Schedule a meeting” and tell the assistant what you need — it’ll do the rest.
             </p>
+            {!showVoiceInput && (
+              <button
+                type="button"
+                onClick={() => setShowVoiceInput(true)}
+                className="btn-primary mt-5"
+              >
+                <Plus className="h-4 w-4" />
+                Schedule your first meeting
+              </button>
+            )}
           </div>
         ) : (
           sorted.map((m, i) => <MeetingCard key={m.id} meeting={m} style={{ animationDelay: `${i * 60}ms` }} />)
