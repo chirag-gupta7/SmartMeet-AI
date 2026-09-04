@@ -70,6 +70,7 @@ describe('Settings calendar panel regression (M2/D3)', () => {
     expect(statusMsg).toBeInTheDocument();
     expect(statusMsg).toHaveAttribute('role', 'status');
     expect(statusMsg).toHaveClass('text-emerald-600');
+    expect(statusMsg).toHaveAttribute('aria-live', 'polite');
     await waitFor(() => expect(screen.getByText('Review')).toBeInTheDocument());
 
     // The always-failing bare POST /calendar/sync must not be used.
@@ -90,5 +91,12 @@ describe('Settings calendar panel regression (M2/D3)', () => {
     expect(errorMsg).toBeInTheDocument();
     expect(errorMsg).toHaveAttribute('role', 'status');
     expect(errorMsg).toHaveClass('text-red-600');
+  });
+
+  test('Sync button has aria-busy and accessible label', async () => {
+    calendarService.getEvents.mockResolvedValue({ source: 'local', events: [] });
+    renderSettings();
+    const button = await screen.findByRole('button', { name: /sync calendar/i });
+    expect(button).toHaveAttribute('aria-busy', 'false');
   });
 });
