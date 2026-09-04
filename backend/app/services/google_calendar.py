@@ -151,7 +151,7 @@ def normalize_event(event: Dict[str, Any]) -> Dict[str, Any]:
         if end_val and "T" in end_val:
             end_dt = parse_iso_datetime(end_val)
             end_time = end_dt.strftime("%I:%M %p")
-    except ValueError as exc:
+    except (ValueError, TypeError) as exc:
         logger.warning("Could not parse event times for %s: %s", event.get("id"), exc)
 
     return {

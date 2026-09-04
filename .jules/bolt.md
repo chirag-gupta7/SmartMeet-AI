@@ -46,3 +46,6 @@
 ## 2026-07-15 - Dashboard Calculation Single-Pass Memoization
 **Learning:** Unmemoized array operations in React page components (such as sorting meetings and filtering by date on every render) cause redundant array allocations, Date instantiations, and DOM re-renders whenever local UI state (e.g. voice panel toggle or speech status) updates.
 **Action:** Use `useMemo` to combine multi-filter logic into a single-pass loop and memoize child presentation components with `React.memo`.
+## 2026-06-29 - Fast ISO Datetime Parsing in Google Calendar Normalization
+**Learning:** Normalizing arrays of external calendar events previously called `start_val.replace('Z', '+00:00')` on every event string, causing unnecessary string allocations. Reusing `parse_iso_datetime` takes advantage of Python 3.11+ direct fast `datetime.fromisoformat` without string allocations.
+**Action:** Use `parse_iso_datetime` consistently for ISO8601 string parsing across services and route handlers.
