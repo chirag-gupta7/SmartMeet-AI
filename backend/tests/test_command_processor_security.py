@@ -54,3 +54,78 @@ def test_create_calendar_event_empty_or_invalid():
         res = processor.create_calendar_event(empty)
         assert res["success"] is False
         assert res["error"] == "Event text is required."
+
+
+def test_set_timer_security_validation():
+    processor = VoiceCommandProcessor()
+    # Test duration exceeding max limit (1440 minutes / 24 hours)
+    res = processor.set_timer(1441)
+    assert res["success"] is False
+    assert "exceeds maximum allowed limit" in res["error"]
+
+    # Test invalid label length or non-string
+    res = processor.set_timer(10, label="L" * 101)
+    assert res["success"] is False
+    assert res["error"] == "Invalid timer label"
+
+    res = processor.set_timer(10, label=12345)
+    assert res["success"] is False
+    assert res["error"] == "Invalid timer label"
+
+
+def test_set_reminder_security_validation():
+    processor = VoiceCommandProcessor()
+    # Test empty or non-string inputs
+    for invalid in ["", "   ", None, 123]:
+        res = processor.set_reminder(invalid, "tomorrow")
+        assert res["success"] is False
+        assert res["error"] == "Invalid reminder parameters."
+
+        res = processor.set_reminder("Call mom", invalid)
+        assert res["success"] is False
+        assert res["error"] == "Invalid reminder parameters."
+
+    # Test oversized inputs
+    res = processor.set_reminder("A" * 501, "tomorrow")
+    assert res["success"] is False
+    assert "exceed maximum allowed length" in res["error"]
+
+
+def test_web_search_security_validation():
+    processor = VoiceCommandProcessor()
+    for invalid in ["", "   ", None, 123]:
+        res = processor.web_search(invalid)
+        assert res["success"] is False
+        assert res["error"] == "Invalid search query."
+
+    res = processor.web_search("Q" * 501)
+    assert res["success"] is False
+    assert "exceeds maximum allowed length" in res["error"]
+
+
+def test_translate_text_security_validation():
+    processor = VoiceCommandProcessor()
+    for invalid in ["", "   ", None, 123]:
+        res = processor.translate_text(invalid, "French")
+        assert res["success"] is False
+        assert res["error"] == "Invalid translation input."
+
+        res = processor.translate_text("Hello", invalid)
+        assert res["success"] is False
+        assert res["error"] == "Invalid translation input."
+
+    res = processor.translate_text("T" * 5001, "French")
+    assert res["success"] is False
+    assert res["error"] == "Translation input exceeds length limits."
+
+
+def test_calculate_security_validation():
+    processor = VoiceCommandProcessor()
+    for invalid in ["", "   ", None, 123]:
+        res = processor.calculate(invalid)
+        assert res["success"] is False
+        assert res["error"] == "Invalid expression"
+
+    res = processor.calculate("1 + " * 200)
+    assert res["success"] is False
+    assert "exceeds maximum allowed length" in res["error"]
