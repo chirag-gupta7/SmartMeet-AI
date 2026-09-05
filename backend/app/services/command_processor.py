@@ -390,7 +390,36 @@ class VoiceCommandProcessor:
     def set_reminder(self, text: str, when: str) -> Dict[str, Any]:
         """
         Set a reminder for a future time.
+        Validates input type and length to prevent DoS attacks.
         """
+        if (
+            not isinstance(text, str)
+            or not text.strip()
+            or not isinstance(when, str)
+            or not when.strip()
+        ):
+            return {
+                'success': False,
+                'error': 'Invalid reminder parameters.',
+                'user_message': (
+                    'Please provide valid text and time for the reminder.'
+                ),
+            }
+
+        text = text.strip()
+        when = when.strip()
+        if len(text) > 500 or len(when) > 500:
+            return {
+                'success': False,
+                'error': (
+                    'Reminder details exceed maximum allowed length of '
+                    '500 characters.'
+                ),
+                'user_message': (
+                    'Reminder details are too long (maximum 500 characters).'
+                ),
+            }
+
         logger.info(f"Setting reminder: {text} for time: {when}")
         
         # This is a placeholder for actual reminder setting
@@ -414,6 +443,7 @@ class VoiceCommandProcessor:
     def set_timer(self, duration_minutes: int, label: str = None) -> Dict[str, Any]:
         """
         Set a timer for a specified duration.
+        Cap duration and label length to prevent thread leak and DoS.
         """
         try:
             # Parse int if needed
@@ -426,6 +456,28 @@ class VoiceCommandProcessor:
                     'error': 'Invalid duration',
                     'user_message': 'Please specify a positive duration in minutes.'
                 }
+
+            if duration_minutes > 1440:
+                return {
+                    'success': False,
+                    'error': (
+                        'Duration exceeds maximum allowed limit of 1440 '
+                        'minutes (24 hours).'
+                    ),
+                    'user_message': (
+                        'Timer duration cannot exceed 24 hours (1440 minutes).'
+                    ),
+                }
+
+            if label is not None:
+                if not isinstance(label, str) or len(label) > 100:
+                    return {
+                        'success': False,
+                        'error': 'Invalid timer label',
+                        'user_message': (
+                            'Label must be a string of 100 characters or fewer.'
+                        ),
+                    }
                 
             timer_id = str(uuid.uuid4())
             timer_label = label or f"Timer {timer_id[:6]}"
@@ -584,11 +636,29 @@ class VoiceCommandProcessor:
                 'user_message': 'Note taking is not configured yet.'
             }
 
-
     def web_search(self, query: str) -> Dict[str, Any]:
         """
         Perform a web search (placeholder for search API integration).
         """
+        if not isinstance(query, str) or not query.strip():
+            return {
+                'success': False,
+                'error': 'Invalid search query.',
+                'user_message': 'Please provide a search query.'
+            }
+
+        query = query.strip()
+        if len(query) > 500:
+            return {
+                'success': False,
+                'error': (
+                    'Query exceeds maximum allowed length of 500 characters.'
+                ),
+                'user_message': (
+                    'Search query is too long (maximum 500 characters).'
+                ),
+            }
+
         logger.info(f"Performing web search for: {query}")
         
         # Demo response (integrate with real search API like Google Custom Search or Bing)
@@ -609,6 +679,27 @@ class VoiceCommandProcessor:
         """
         Translate text to another language (placeholder for translation API).
         """
+        if (
+            not isinstance(text, str)
+            or not text.strip()
+            or not isinstance(target_language, str)
+            or not target_language.strip()
+        ):
+            return {
+                'success': False,
+                'error': 'Invalid translation input.',
+                'user_message': 'Please provide text and target language.'
+            }
+
+        text = text.strip()
+        target_language = target_language.strip()
+        if len(text) > 5000 or len(target_language) > 100:
+            return {
+                'success': False,
+                'error': 'Translation input exceeds length limits.',
+                'user_message': 'Translation text or language is too long.'
+            }
+
         logger.info(f"Translating '{text}' to {target_language}")
         
         # Demo response (integrate with Google Translate or similar)
@@ -637,6 +728,26 @@ class VoiceCommandProcessor:
         Uses an AST walk restricted to numeric literals and basic
         arithmetic operators; no dynamic execution of user input.
         """
+        if not isinstance(expression, str) or not expression.strip():
+            return {
+                'success': False,
+                'error': 'Invalid expression',
+                'user_message': 'Please provide an expression to calculate.'
+            }
+
+        expression = expression.strip()
+        if len(expression) > 500:
+            return {
+                'success': False,
+                'error': (
+                    'Expression exceeds maximum allowed length of 500 '
+                    'characters.'
+                ),
+                'user_message': (
+                    'Expression is too long (maximum 500 characters).'
+                ),
+            }
+
         logger.info(f"Calculating: {expression}")
 
         try:
