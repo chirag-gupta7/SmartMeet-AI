@@ -122,7 +122,11 @@ const Dashboard = () => {
               responseMessage={responseMessage}
               authUrl={authUrl}
             />
-            {processing && <p className="mt-4 text-center text-sm text-ink-900/50">Processing your request…</p>}
+            {processing && (
+              <p role="status" aria-live="polite" className="mt-4 text-center text-sm text-ink-900/50">
+                Processing your request…
+              </p>
+            )}
           </div>
         </div>
       )}
