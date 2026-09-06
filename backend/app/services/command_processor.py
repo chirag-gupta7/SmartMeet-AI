@@ -33,6 +33,37 @@ _SAFE_UNARY_OPS = {
     ast.USub: lambda a: -a,
 }
 
+# BOLT OPTIMIZATION: Pre-compile regular expressions at module scope to
+# eliminate dynamic pattern compilation overhead on every voice command.
+_RE_WEATHER_EXTRACT = re.compile(
+    r"weather(?:\s+(?:in|at|for))?\s+([a-zA-Z0-9 ,.-]+)", re.IGNORECASE
+)
+_RE_FACT = re.compile(r"\bfact\b", re.IGNORECASE)
+_RE_TODAY_EVENTS = re.compile(
+    r"\b(today'?s|for today)\b.*\b(event|meeting|calendar)\b", re.IGNORECASE
+)
+_RE_NEXT_DAYS = re.compile(r"next\s+(\d+)\s+days?", re.IGNORECASE)
+_RE_CALCULATE = re.compile(r"\bcalculate\s+(.+)", re.IGNORECASE)
+_RE_NOTE = re.compile(
+    r"\b(?:take a note|make a note|note that|remember(?: that)?)\s+(.+)",
+    re.IGNORECASE,
+)
+_RE_SEARCH = re.compile(
+    r"\b(?:search(?:\s+for)?|look up)\s+(.+)", re.IGNORECASE
+)
+_RE_TRANSLATE = re.compile(
+    r"\btranslate\s+(.+?)\s+(?:to|into)\s+([\w ]+)$", re.IGNORECASE
+)
+_RE_TIMER = re.compile(
+    r"\b(?:set|start)\s+a?\s*timer\s+for\s+(\d+)\s*(minutes?|mins?|seconds?)",
+    re.IGNORECASE,
+)
+_RE_REMINDER = re.compile(
+    r"\bremind me to\s+(?P<task>.+?)\s+(?P<when>tomorrow|today|next \w+|at\s+.+|on\s+.+)$",
+    re.IGNORECASE,
+)
+_RE_WEATHER_LOCATION = re.compile(r"^[\w ,.-]+$")
+
 
 def _safe_eval(node: ast.expr) -> float:
     """Evaluate an arithmetic AST composed only of numbers and operators."""
@@ -116,8 +147,7 @@ class VoiceCommandProcessor:
                 logger.info(f"Detected weather intent in '{raw_command}', redirecting to weather command")
                 
                 # Try to extract location from the raw command
-                import re
-                location_match = re.search(r"weather(?:\s+(?:in|at|for))?\s+([a-zA-Z0-9 ,.-]+)", raw_command.lower())
+                location_match = _RE_WEATHER_EXTRACT.search(raw_command)
                 location = "current location"
                 
                 if location_match and location_match.group(1).strip():
@@ -164,7 +194,7 @@ class VoiceCommandProcessor:
         # --- simple no-argument commands ---------------------------------
         if 'joke' in lowered:
             return self.process_command('joke')
-        if re.search(r'\bfact\b', lowered):
+        if _RE_FACT.search(lowered):
             return self.process_command('fact')
         if 'news' in lowered or 'headline' in lowered:
             return self.process_command('news')
@@ -172,12 +202,12 @@ class VoiceCommandProcessor:
         # --- calendar queries --------------------------------------------
         if 'next meeting' in lowered or 'next event' in lowered:
             return self.process_command('calendar_next')
-        if re.search(r"\b(today'?s|for today)\b.*\b(event|meeting|calendar)\b", lowered) or (
+        if _RE_TODAY_EVENTS.search(lowered) or (
             'today' in lowered and 'calendar' in lowered
         ):
             return self.process_command('calendar_today')
         if 'upcoming' in lowered or 'coming week' in lowered:
-            match = re.search(r'next\s+(\d+)\s+days?', lowered)
+            match = _RE_NEXT_DAYS.search(lowered)
             days = int(match.group(1)) if match else 7
             return self.process_command('calendar_upcoming', days=days)
         if 'free time' in lowered or 'free slot' in lowered or 'available' in lowered:
@@ -188,25 +218,19 @@ class VoiceCommandProcessor:
             return self.process_command('calendar_status')
 
         # --- commands that need extracted arguments -----------------------
-        calc = re.search(r'\bcalculate\s+(.+)', lowered)
+        calc = _RE_CALCULATE.search(lowered)
         if calc:
             return self.process_command('calculate', expression=calc.group(1).strip())
 
-        note = re.search(
-            r'\b(?:take a note|make a note|note that|remember(?: that)?)\s+(.+)',
-            text,
-            re.IGNORECASE,
-        )
+        note = _RE_NOTE.search(text)
         if note and note.group(1).strip():
             return self.take_note(note.group(1).strip())
 
-        search = re.search(r'\b(?:search(?:\s+for)?|look up)\s+(.+)', text, re.IGNORECASE)
+        search = _RE_SEARCH.search(text)
         if search and search.group(1).strip():
             return self.process_command('search', query=search.group(1).strip())
 
-        translate = re.search(
-            r'\btranslate\s+(.+?)\s+(?:to|into)\s+([\w ]+)$', text, re.IGNORECASE
-        )
+        translate = _RE_TRANSLATE.search(text)
         if translate:
             return self.process_command(
                 'translate',
@@ -214,17 +238,13 @@ class VoiceCommandProcessor:
                 target_language=translate.group(2).strip().title(),
             )
 
-        timer = re.search(r'\b(?:set|start)\s+a?\s*timer\s+for\s+(\d+)\s*(minutes?|mins?|seconds?)', lowered)
+        timer = _RE_TIMER.search(lowered)
         if timer:
             amount = int(timer.group(1))
             duration_minutes = amount / 60 if timer.group(2).startswith(('s',)) else amount
             return self.set_timer(int(duration_minutes))
 
-        reminder = re.search(
-            r'\bremind me to\s+(?P<task>.+?)\s+(?P<when>tomorrow|today|next \w+|at\s+.+|on\s+.+)$',
-            text,
-            re.IGNORECASE,
-        )
+        reminder = _RE_REMINDER.search(text)
         if reminder:
             return self.process_command(
                 'reminder',
@@ -291,7 +311,7 @@ class VoiceCommandProcessor:
             }
 
         location = location.strip()
-        if len(location) > 100 or not re.match(r'^[\w ,.-]+$', location):
+        if len(location) > 100 or not _RE_WEATHER_LOCATION.match(location):
             return {
                 'success': False,
                 'error': 'Invalid characters or length in location',
