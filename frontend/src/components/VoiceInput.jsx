@@ -9,11 +9,13 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState(null);
   const [isFirstInteraction, setIsFirstInteraction] = useState(true);
+  const [isSupported, setIsSupported] = useState(true);
 
   const audioRef = useRef(new Audio());
 
   useEffect(() => {
     if (!voiceService.isSupported()) {
+      setIsSupported(false);
       setError('Voice recognition is not supported in this browser. Please use Chrome.');
     }
     const audioEl = audioRef.current;
@@ -136,10 +138,10 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
           <button
             type="button"
             onClick={handleInteraction}
-            disabled={Boolean(error)}
+            disabled={!isSupported}
             aria-label={getAriaLabel()}
             title={getAriaLabel()}
-            className={`relative flex h-24 w-24 items-center justify-center rounded-full text-white shadow-glow transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-300 ${stateClasses} ${error ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105'}`}
+            className={`relative flex h-24 w-24 items-center justify-center rounded-full text-white shadow-glow transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-300 ${stateClasses} ${!isSupported ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105'}`}
           >
             {isListening ? (
               <Square className="h-9 w-9 fill-current" />
@@ -191,8 +193,18 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
       )}
 
       {error && (
-        <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
-          {error}
+        <div role="alert" className="flex items-center justify-between rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+          <span>{error}</span>
+          {isSupported && (
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              className="ml-3 rounded-lg px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+              aria-label="Dismiss error"
+            >
+              Dismiss
+            </button>
+          )}
         </div>
       )}
     </div>
