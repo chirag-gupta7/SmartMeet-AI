@@ -52,7 +52,9 @@ def create_app(config_class: type[Config] | None = None) -> Flask:
 
     # Allow requests from the configured frontend origin(s) and allow
     # credentials (cookies) to be passed back and forth.
-    frontend_url = (app.config.get("FRONTEND_URL") or "http://localhost:3000").rstrip("/")
+    frontend_url = (
+        app.config.get("FRONTEND_URL") or "http://localhost:3000"
+    ).rstrip("/")
     cors_origins = [frontend_url]
     if "127.0.0.1" in frontend_url:
         cors_origins.append(frontend_url.replace("127.0.0.1", "localhost"))
@@ -68,9 +70,22 @@ def create_app(config_class: type[Config] | None = None) -> Flask:
     register_extensions(app)
     register_blueprints(app)
     register_healthcheck(app)
+    register_security_headers(app)
     set_flask_app_for_command_processor(app)
 
     return app
+
+
+def register_security_headers(app: Flask) -> None:
+    @app.after_request
+    def set_security_headers(response):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers[
+            "Referrer-Policy"
+        ] = "strict-origin-when-cross-origin"
+        return response
 
 
 def register_extensions(app: Flask) -> None:
