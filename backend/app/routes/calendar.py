@@ -303,14 +303,18 @@ def create_structured_event():
                 }
             ), 400
 
-    if len(title) > 255:
-        return jsonify({"success": False, "message": "Title must be 255 characters or fewer"}), 400
-
-    if description and isinstance(description, str) and len(description) > 10000:
-        return jsonify({"success": False, "message": "Description must be 10000 characters or fewer"}), 400
-
-    if location and isinstance(location, str) and len(location) > 255:
-        return jsonify({"success": False, "message": "Location must be 255 characters or fewer"}), 400
+    if raw_text is not None:
+        if not isinstance(raw_text, str):
+            return jsonify(
+                {"success": False, "message": "raw_text must be a string"}
+            ), 400
+        if len(raw_text) > 10000:
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "raw_text exceeds 10,000 characters",
+                }
+            ), 400
 
     raw_duration = payload.get("duration_minutes")
     if raw_duration is None or raw_duration == "":
