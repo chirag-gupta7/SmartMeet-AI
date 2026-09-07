@@ -71,6 +71,7 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error('Failed to process command:', error);
+      setResponseMessage(error?.response?.data?.message || 'Failed to process voice command. Please try again.');
     } finally {
       setProcessing(false);
     }
@@ -125,7 +126,11 @@ const Dashboard = () => {
               responseMessage={responseMessage}
               authUrl={authUrl}
             />
-            {processing && <p className="mt-4 text-center text-sm text-ink-900/50">Processing your request…</p>}
+            {processing && (
+              <p role="status" aria-live="polite" className="mt-4 text-center text-sm text-ink-900/50">
+                Processing your request…
+              </p>
+            )}
           </div>
         </div>
       )}
