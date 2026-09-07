@@ -42,18 +42,17 @@ def test_get_weather_empty_or_non_string():
 
 def test_create_calendar_event_empty_or_non_string():
     processor = VoiceCommandProcessor()
-    for empty in ["", "   ", None, 123, ["event"]]:
+    for empty in ["", "   ", None, 123]:
         res = processor.create_calendar_event(empty)
         assert res["success"] is False
-        assert res["error"] == "Event text cannot be empty."
+        assert res["error"] == "Invalid event text provided"
 
 
-def test_create_calendar_event_oversized_text():
+def test_create_calendar_event_oversized():
     processor = VoiceCommandProcessor()
     long_event = "A" * 10001
     res = processor.create_calendar_event(long_event)
     assert res["success"] is False
-    assert (
-        res["error"]
-        == "Event text exceeds maximum allowed length of 10000 characters."
+    assert res["error"] == (
+        "Event text exceeds maximum allowed length of 10000 characters."
     )

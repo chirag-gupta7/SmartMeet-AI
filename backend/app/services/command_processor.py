@@ -889,12 +889,12 @@ class VoiceCommandProcessor:
         if not isinstance(event_text, str) or not event_text.strip():
             return {
                 'success': False,
-                'error': 'Event text cannot be empty.',
-                'user_message': 'Please provide details for the event.'
+                'error': 'Invalid event text provided',
+                'user_message': 'Please provide text describing the event you want to create.'
             }
 
-        event_str = event_text.strip()
-        if len(event_str) > 10000:
+        event_text = event_text.strip()
+        if len(event_text) > 10000:
             return {
                 'success': False,
                 'error': (
@@ -906,7 +906,7 @@ class VoiceCommandProcessor:
                 )
             }
 
-        logger.info(f"Creating calendar event from: {event_str}")
+        logger.info(f"Creating calendar event from: {event_text[:50]}...")
 
         if not self.user_id:
             return self._calendar_not_connected()
@@ -915,7 +915,7 @@ class VoiceCommandProcessor:
             from .google_calendar import create_quick_event_for_user
 
             result = create_quick_event_for_user(
-                self.user_id, event_str, timezone_name=self.timezone_name
+                self.user_id, event_text, timezone_name=self.timezone_name
             )
 
             if result and result.get('success'):
