@@ -30,27 +30,29 @@ const Dashboard = () => {
   };
 
   // BOLT OPTIMIZATION: Memoize meeting sorting and date calculations in a single pass
-  // to avoid redundant Date instantiations, array allocations, and re-sorting on every render state change.
+  // to avoid recalculating on unrelated state changes (e.g., toggling voice scheduler or processing status).
   const { sorted, today, week } = useMemo(() => {
     const sortedList = [...meetings].sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
     const now = new Date();
-    const tToday = startOfDay(now).getTime();
-    const tWeekEnd = startOfDay(addDays(now, 7)).getTime();
+    const todayStart = startOfDay(now).getTime();
+    const nextWeekEnd = startOfDay(addDays(now, 7)).getTime();
 
     const todayList = [];
     const weekList = [];
 
     for (let i = 0; i < sortedList.length; i++) {
       const m = sortedList[i];
-      const dTime = startOfDay(new Date(m.start_time)).getTime();
-      if (dTime === tToday) todayList.push(m);
-      if (dTime >= tToday && dTime <= tWeekEnd) weekList.push(m);
+      const mStart = startOfDay(new Date(m.start_time)).getTime();
+      if (mStart === todayStart) {
+        todayList.push(m);
+      }
+      if (mStart >= todayStart && mStart <= nextWeekEnd) {
+        weekList.push(m);
+      }
     }
 
     return { sorted: sortedList, today: todayList, week: weekList };
   }, [meetings]);
-
-  const now = new Date();
 
   const handleVoiceTranscript = async (transcript) => {
     try {
@@ -74,6 +76,7 @@ const Dashboard = () => {
     }
   };
 
+  const now = new Date();
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening';
 
   return (
@@ -157,8 +160,7 @@ const Dashboard = () => {
   );
 };
 
-// BOLT OPTIMIZATION: Memoize child presentation components to avoid unnecessary DOM re-renders
-// when parent dashboard state (e.g. processing, showVoiceInput, responseMessage) changes.
+// BOLT OPTIMIZATION: Memoize child cards with React.memo to prevent re-rendering when Dashboard state changes.
 const StatCard = React.memo(({ icon: Icon, label, value, tint }) => {
   const tints = {
     primary: 'bg-primary-50 text-primary-600',
@@ -178,6 +180,7 @@ const StatCard = React.memo(({ icon: Icon, label, value, tint }) => {
   );
 });
 
+// BOLT OPTIMIZATION: Memoize child cards with React.memo to prevent re-rendering when Dashboard state changes.
 const MeetingCard = React.memo(({ meeting, style }) => {
   const d = new Date(meeting.start_time);
   const day = d.getDate();
