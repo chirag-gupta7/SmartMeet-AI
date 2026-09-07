@@ -28,6 +28,14 @@ const Layout = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 text-ink-900">
+      {/* Skip to content link for keyboard & screen reader accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-xl focus:bg-primary-600 focus:px-4 focus:py-2.5 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-300"
+      >
+        Skip to main content
+      </a>
+
       {/* Decorative background blobs */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-primary-300/30 blur-3xl animate-float" />
@@ -68,7 +76,7 @@ const Layout = () => {
 
       {/* ===== Main ===== */}
       <div className="md:pl-64">
-        <main className="mx-auto max-w-6xl px-4 pb-28 pt-8 sm:px-6 lg:px-10 md:pb-12">
+        <main id="main-content" tabIndex={-1} className="mx-auto max-w-6xl px-4 pb-28 pt-8 sm:px-6 lg:px-10 md:pb-12 focus:outline-none">
           <Outlet />
         </main>
       </div>
