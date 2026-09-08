@@ -56,3 +56,34 @@ def test_create_calendar_event_oversized():
     assert res["error"] == (
         "Event text exceeds maximum allowed length of 10000 characters."
     )
+
+
+def test_set_timer_oversized_duration():
+    processor = VoiceCommandProcessor()
+    res = processor.set_timer(1441)
+    assert res["success"] is False
+    assert res["error"] == "Duration exceeds maximum limit of 1440 minutes"
+
+
+def test_set_timer_invalid_duration_types_and_bounds():
+    processor = VoiceCommandProcessor()
+    invalid_inputs = [-1, 0, "abc", None, [], {}]
+    for inp in invalid_inputs:
+        res = processor.set_timer(inp)
+        assert res["success"] is False
+
+
+def test_set_timer_oversized_label():
+    processor = VoiceCommandProcessor()
+    long_label = "A" * 101
+    res = processor.set_timer(10, label=long_label)
+    assert res["success"] is False
+    assert res["error"] == "Timer label exceeds 100 characters"
+
+
+def test_set_timer_valid():
+    processor = VoiceCommandProcessor()
+    res = processor.set_timer(5, label="Quick Break")
+    assert res["success"] is True
+    assert res["data"]["duration"] == 5
+    assert res["data"]["label"] == "Quick Break"

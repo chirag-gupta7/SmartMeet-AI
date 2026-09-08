@@ -414,19 +414,51 @@ class VoiceCommandProcessor:
     def set_timer(self, duration_minutes: int, label: str = None) -> Dict[str, Any]:
         """
         Set a timer for a specified duration.
+        Caps duration at 1440 minutes (24 hours) and validates inputs
+        to prevent resource exhaustion and DoS.
         """
         try:
-            # Parse int if needed
-            if isinstance(duration_minutes, str):
+            if not isinstance(duration_minutes, (int, float, str)):
+                return {
+                    'success': False,
+                    'error': 'Invalid duration type',
+                    'user_message': 'Please specify a valid duration.'
+                }
+
+            try:
                 duration_minutes = int(duration_minutes)
-            
+            except (ValueError, TypeError):
+                return {
+                    'success': False,
+                    'error': 'Invalid duration format',
+                    'user_message': 'Please specify a valid duration.'
+                }
+
             if duration_minutes <= 0:
                 return {
                     'success': False,
                     'error': 'Invalid duration',
                     'user_message': 'Please specify a positive duration in minutes.'
                 }
-                
+
+            if duration_minutes > 1440:
+                return {
+                    'success': False,
+                    'error': 'Duration exceeds maximum limit of 1440 minutes',
+                    'user_message': 'Timer duration cannot exceed 1440 minutes (24 hours).'
+                }
+
+            if label is not None:
+                if not isinstance(label, str):
+                    label = str(label)
+                label = label.strip()
+                if len(label) > 100:
+                    return {
+                        'success': False,
+                        'error': 'Timer label exceeds 100 characters',
+                        'user_message': 'Timer label must be 100 characters or fewer.'
+                    }
+
             timer_id = str(uuid.uuid4())
             timer_label = label or f"Timer {timer_id[:6]}"
             
