@@ -138,6 +138,7 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
             onClick={handleInteraction}
             disabled={!voiceService.isSupported()}
             aria-label={getAriaLabel()}
+            aria-pressed={isListening || isPlayingAudio}
             title={getAriaLabel()}
             className={`relative flex h-24 w-24 items-center justify-center rounded-full text-white shadow-glow transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-300 ${stateClasses} ${!voiceService.isSupported() ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105'}`}
           >
@@ -159,11 +160,9 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
               <span className="text-ink-900/50">{isFirstInteraction ? 'Tap to start the assistant' : 'Tap to speak again'}</span>
             )}
           </p>
-          {!error && (
-            <span className="inline-flex items-center gap-1 text-xs text-ink-900/40">
-              or press <kbd className="rounded border border-ink-900/20 bg-white px-1.5 py-0.5 text-[10px] font-semibold shadow-xs">Ctrl + Space</kbd>
-            </span>
-          )}
+          <span className="inline-flex items-center gap-1 text-xs text-ink-900/40">
+            or press <kbd className="rounded border border-ink-900/20 bg-white px-1.5 py-0.5 text-[10px] font-semibold shadow-xs">Ctrl + Space</kbd>
+          </span>
         </div>
       </div>
 
@@ -196,7 +195,7 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
           {voiceService.isSupported() && (
             <button
               type="button"
-              onClick={() => setError(null)}
+              onClick={handleInteraction}
               className="rounded px-2 py-1 text-xs font-semibold underline hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
             >
               Try again
