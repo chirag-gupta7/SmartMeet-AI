@@ -391,6 +391,34 @@ class VoiceCommandProcessor:
         """
         Set a reminder for a future time.
         """
+        if not isinstance(text, str) or not text.strip():
+            return {
+                'success': False,
+                'error': 'Invalid reminder text provided',
+                'user_message': 'Please specify what you would like to be reminded about.'
+            }
+        if len(text.strip()) > 1000:
+            return {
+                'success': False,
+                'error': 'Reminder text exceeds maximum allowed length of 1000 characters',
+                'user_message': 'Reminder text is too long (maximum 1000 characters).'
+            }
+
+        if not isinstance(when, str) or not when.strip():
+            return {
+                'success': False,
+                'error': 'Invalid reminder time provided',
+                'user_message': 'Please specify when you would like to be reminded.'
+            }
+        if len(when.strip()) > 255:
+            return {
+                'success': False,
+                'error': 'Reminder time string exceeds maximum allowed length of 255 characters',
+                'user_message': 'Reminder time format is too long (maximum 255 characters).'
+            }
+
+        text = text.strip()
+        when = when.strip()
         logger.info(f"Setting reminder: {text} for time: {when}")
         
         # This is a placeholder for actual reminder setting
@@ -420,12 +448,33 @@ class VoiceCommandProcessor:
             if isinstance(duration_minutes, str):
                 duration_minutes = int(duration_minutes)
             
-            if duration_minutes <= 0:
+            if not isinstance(duration_minutes, (int, float)) or duration_minutes <= 0:
                 return {
                     'success': False,
                     'error': 'Invalid duration',
                     'user_message': 'Please specify a positive duration in minutes.'
                 }
+
+            if duration_minutes > 1440:
+                return {
+                    'success': False,
+                    'error': 'Duration exceeds maximum allowed limit of 1440 minutes (24 hours)',
+                    'user_message': 'Timer duration cannot exceed 1440 minutes (24 hours).'
+                }
+
+            if label is not None:
+                if not isinstance(label, str):
+                    return {
+                        'success': False,
+                        'error': 'Invalid timer label',
+                        'user_message': 'Timer label must be a string.'
+                    }
+                if len(label) > 255:
+                    return {
+                        'success': False,
+                        'error': 'Timer label exceeds maximum allowed length of 255 characters',
+                        'user_message': 'Timer label is too long (maximum 255 characters).'
+                    }
                 
             timer_id = str(uuid.uuid4())
             timer_label = label or f"Timer {timer_id[:6]}"
@@ -589,27 +638,68 @@ class VoiceCommandProcessor:
         """
         Perform a web search (placeholder for search API integration).
         """
-        logger.info(f"Performing web search for: {query}")
+        if not isinstance(query, str) or not query.strip():
+            return {
+                'success': False,
+                'error': 'Invalid search query provided',
+                'user_message': 'Please provide a valid search query.'
+            }
+
+        query_str = query.strip()
+        if len(query_str) > 500:
+            return {
+                'success': False,
+                'error': 'Search query exceeds maximum allowed length of 500 characters',
+                'user_message': 'Search query is too long (maximum 500 characters).'
+            }
+
+        logger.info(f"Performing web search for: {query_str}")
         
         # Demo response (integrate with real search API like Google Custom Search or Bing)
         return {
             'success': True,
             'data': {
-                'query': query,
+                'query': query_str,
                 'results': [
-                    f"Search result 1 for '{query}'",
-                    f"Search result 2 for '{query}'",
-                    f"Search result 3 for '{query}'"
+                    f"Search result 1 for '{query_str}'",
+                    f"Search result 2 for '{query_str}'",
+                    f"Search result 3 for '{query_str}'"
                 ]
             },
-            'user_message': f"Here are search results for '{query}': (Demo mode - integrate with search API for real results)"
+            'user_message': f"Here are search results for '{query_str}': (Demo mode - integrate with search API for real results)"
         }
 
     def translate_text(self, text: str, target_language: str = "Spanish") -> Dict[str, Any]:
         """
         Translate text to another language (placeholder for translation API).
         """
-        logger.info(f"Translating '{text}' to {target_language}")
+        if not isinstance(text, str) or not text.strip():
+            return {
+                'success': False,
+                'error': 'Invalid text provided for translation',
+                'user_message': 'Please provide text to translate.'
+            }
+
+        text_str = text.strip()
+        if len(text_str) > 5000:
+            return {
+                'success': False,
+                'error': 'Translation text exceeds maximum allowed length of 5000 characters',
+                'user_message': 'Text for translation is too long (maximum 5000 characters).'
+            }
+
+        if not isinstance(target_language, str) or not target_language.strip():
+            target_language = "Spanish"
+
+        lang_str = target_language.strip()
+        if len(lang_str) > 100:
+            return {
+                'success': False,
+                'error': 'Target language exceeds maximum allowed length of 100 characters',
+                'user_message': 'Target language name is too long.'
+            }
+
+        logger.info(f"Translating '{text_str}' to {lang_str}")
         
         # Demo response (integrate with Google Translate or similar)
         translations = {
@@ -618,16 +708,16 @@ class VoiceCommandProcessor:
             'thank you': {'Spanish': 'Gracias', 'French': 'Merci', 'German': 'Danke'}
         }
         
-        translated = translations.get(text.lower(), {}).get(target_language, f"[{text} in {target_language}]")
+        translated = translations.get(text_str.lower(), {}).get(lang_str, f"[{text_str} in {lang_str}]")
         
         return {
             'success': True,
             'data': {
-                'original_text': text,
+                'original_text': text_str,
                 'translated_text': translated,
-                'target_language': target_language
+                'target_language': lang_str
             },
-            'user_message': f"'{text}' in {target_language} is: {translated}"
+            'user_message': f"'{text_str}' in {lang_str} is: {translated}"
         }
 
     def calculate(self, expression: str) -> Dict[str, Any]:
