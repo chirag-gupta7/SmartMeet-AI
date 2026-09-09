@@ -75,6 +75,15 @@ describe('VoiceInput greeting fetch regression (M3)', () => {
     expect(statusText.parentElement).toHaveAttribute('aria-live', 'polite');
   });
 
+  test('VoiceInput renders responseMessage region with role="status" and aria-live="polite"', () => {
+    render(
+      <VoiceInput onTranscript={jest.fn()} onProcessing={jest.fn()} responseMessage="Meeting scheduled successfully" authUrl={null} />
+    );
+
+    const messageEl = screen.getByText('Meeting scheduled successfully');
+    expect(messageEl.closest('[role="status"]')).toHaveAttribute('aria-live', 'polite');
+  });
+
   test('triggers interaction on Ctrl+Space keydown', async () => {
     api.get.mockResolvedValue({ data: { success: false } });
 
