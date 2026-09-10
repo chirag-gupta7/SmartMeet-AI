@@ -391,6 +391,31 @@ class VoiceCommandProcessor:
         """
         Set a reminder for a future time.
         """
+        if (
+            not isinstance(text, str)
+            or not text.strip()
+            or not isinstance(when, str)
+            or not when.strip()
+        ):
+            return {
+                'success': False,
+                'error': 'Invalid reminder parameters provided',
+                'user_message': (
+                    'Please provide what to remind you about and when.'
+                ),
+            }
+
+        text = text.strip()
+        when = when.strip()
+        if len(text) > 500 or len(when) > 500:
+            return {
+                'success': False,
+                'error': 'Reminder text or time expression is too long',
+                'user_message': (
+                    'Reminder details are too long (maximum 500 characters).'
+                ),
+            }
+
         logger.info(f"Setting reminder: {text} for time: {when}")
         
         # This is a placeholder for actual reminder setting
@@ -589,6 +614,23 @@ class VoiceCommandProcessor:
         """
         Perform a web search (placeholder for search API integration).
         """
+        if not isinstance(query, str) or not query.strip():
+            return {
+                'success': False,
+                'error': 'Invalid query provided',
+                'user_message': 'Please provide a valid search query.',
+            }
+
+        query = query.strip()
+        if len(query) > 500:
+            return {
+                'success': False,
+                'error': 'Search query is too long',
+                'user_message': (
+                    'Search query exceeds maximum length of 500 characters.'
+                ),
+            }
+
         logger.info(f"Performing web search for: {query}")
         
         # Demo response (integrate with real search API like Google Custom Search or Bing)
@@ -609,6 +651,32 @@ class VoiceCommandProcessor:
         """
         Translate text to another language (placeholder for translation API).
         """
+        if (
+            not isinstance(text, str)
+            or not text.strip()
+            or not isinstance(target_language, str)
+            or not target_language.strip()
+        ):
+            return {
+                'success': False,
+                'error': 'Invalid translation parameters provided',
+                'user_message': (
+                    'Please provide text and a target language to translate.'
+                ),
+            }
+
+        text = text.strip()
+        target_language = target_language.strip()
+        if len(text) > 1000 or len(target_language) > 50:
+            return {
+                'success': False,
+                'error': (
+                    'Translation text or language parameter exceeds maximum'
+                    ' length'
+                ),
+                'user_message': 'Text or language input is too long.',
+            }
+
         logger.info(f"Translating '{text}' to {target_language}")
         
         # Demo response (integrate with Google Translate or similar)
@@ -637,6 +705,26 @@ class VoiceCommandProcessor:
         Uses an AST walk restricted to numeric literals and basic
         arithmetic operators; no dynamic execution of user input.
         """
+        if not isinstance(expression, str) or not expression.strip():
+            return {
+                'success': False,
+                'error': 'Invalid expression provided',
+                'user_message': (
+                    'Please provide a valid mathematical expression.'
+                ),
+            }
+
+        expression = expression.strip()
+        if len(expression) > 500:
+            return {
+                'success': False,
+                'error': 'Expression is too long',
+                'user_message': (
+                    'Mathematical expression is too long (maximum 500'
+                    ' characters).'
+                ),
+            }
+
         logger.info(f"Calculating: {expression}")
 
         try:
@@ -836,16 +924,30 @@ class VoiceCommandProcessor:
     
     def get_upcoming_events(self, days=7) -> Dict[str, Any]:
         """Get upcoming calendar events for the next X days."""
-        logger.info(f"Fetching upcoming calendar events for the next {days} days")
+        try:
+            days = int(days)
+        except (TypeError, ValueError):
+            return {
+                'success': False,
+                'error': 'Invalid days parameter provided',
+                'user_message': 'Please specify a valid number of days.',
+            }
+
+        if days <= 0 or days > 365:
+            return {
+                'success': False,
+                'error': 'Days parameter out of allowed range',
+                'user_message': 'Number of days must be between 1 and 365.',
+            }
+
+        logger.info(
+            f"Fetching upcoming calendar events for the next {days} days"
+        )
 
         if not self.user_id:
             return self._calendar_not_connected()
 
         try:
-            # Convert days parameter to int if it's a string
-            if isinstance(days, str):
-                days = int(days)
-
             from .google_calendar import list_upcoming_events_for_user
 
             events = list_upcoming_events_for_user(self.user_id, max_results=None, days_ahead=days)
