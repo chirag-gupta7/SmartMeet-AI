@@ -113,4 +113,20 @@ describe('VoiceInput greeting fetch regression (M3)', () => {
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
+
+  test('renders responseMessage inside live region with role="status" and aria-live="polite"', () => {
+    render(
+      <VoiceInput
+        onTranscript={jest.fn()}
+        onProcessing={jest.fn()}
+        responseMessage="Meeting scheduled for 3:00 PM."
+        authUrl={null}
+      />
+    );
+
+    const responseMsg = screen.getByText('Meeting scheduled for 3:00 PM.');
+    const statusContainer = responseMsg.closest('[role="status"]');
+    expect(statusContainer).toBeInTheDocument();
+    expect(statusContainer).toHaveAttribute('aria-live', 'polite');
+  });
 });
