@@ -16,6 +16,38 @@ from ..models import Log, Note, User
 
 logger = logging.getLogger(__name__)
 
+# BOLT OPTIMIZATION: Pre-compile regex patterns at module level to eliminate
+# dynamic pattern compilation overhead on every voice command processing call.
+_WEATHER_LOCATION_PATTERN = re.compile(
+    r"weather(?:\s+(?:in|at|for))?\s+([a-zA-Z0-9 ,.-]+)", re.IGNORECASE
+)
+_FACT_PATTERN = re.compile(r"\bfact\b", re.IGNORECASE)
+_TODAY_CALENDAR_PATTERN = re.compile(
+    r"\b(today'?s|for today)\b.*\b(event|meeting|calendar)\b", re.IGNORECASE
+)
+_UPCOMING_DAYS_PATTERN = re.compile(r"next\s+(\d+)\s+days?", re.IGNORECASE)
+_CALCULATE_PATTERN = re.compile(r"\bcalculate\s+(.+)", re.IGNORECASE)
+_NOTE_PATTERN = re.compile(
+    r"\b(?:take a note|make a note|note that|remember(?: that)?)\s+(.+)",
+    re.IGNORECASE,
+)
+# alias for incoming branch naming
+_TAKE_NOTE_PATTERN = _NOTE_PATTERN
+_SEARCH_PATTERN = re.compile(
+    r"\b(?:search(?:\s+for)?|look up)\s+(.+)", re.IGNORECASE
+)
+_TRANSLATE_PATTERN = re.compile(
+    r"\btranslate\s+(.+?)\s+(?:to|into)\s+([\w ]+)$", re.IGNORECASE
+)
+_TIMER_PATTERN = re.compile(
+    r"\b(?:set|start)\s+a?\s*timer\s+for\s+(\d+)\s*(minutes?|mins?|seconds?)",
+    re.IGNORECASE,
+)
+_REMINDER_PATTERN = re.compile(
+    r"\bremind me to\s+(?P<task>.+?)\s+(?P<when>tomorrow|today|next \w+|at\s+.+|on\s+.+)$",
+    re.IGNORECASE,
+)
+
 # Binary/unary operators allowed in the safe arithmetic evaluator, mapped
 # to plain Python functions so user input is never dynamically executed.
 _SAFE_BIN_OPS = {
@@ -32,36 +64,6 @@ _SAFE_UNARY_OPS = {
     ast.UAdd: lambda a: +a,
     ast.USub: lambda a: -a,
 }
-
-# BOLT OPTIMIZATION: Pre-compile regex patterns at module level to eliminate
-# dynamic pattern compilation overhead on every voice command intent request.
-_WEATHER_LOCATION_PATTERN = re.compile(
-    r"weather(?:\s+(?:in|at|for))?\s+([a-zA-Z0-9 ,.-]+)", re.IGNORECASE
-)
-_FACT_PATTERN = re.compile(r"\bfact\b", re.IGNORECASE)
-_TODAY_CALENDAR_PATTERN = re.compile(
-    r"\b(today'?s|for today)\b.*\b(event|meeting|calendar)\b", re.IGNORECASE
-)
-_UPCOMING_DAYS_PATTERN = re.compile(r"next\s+(\d+)\s+days?", re.IGNORECASE)
-_CALCULATE_PATTERN = re.compile(r"\bcalculate\s+(.+)", re.IGNORECASE)
-_NOTE_PATTERN = re.compile(
-    r"\b(?:take a note|make a note|note that|remember(?: that)?)\s+(.+)",
-    re.IGNORECASE,
-)
-_SEARCH_PATTERN = re.compile(
-    r"\b(?:search(?:\s+for)?|look up)\s+(.+)", re.IGNORECASE
-)
-_TRANSLATE_PATTERN = re.compile(
-    r"\btranslate\s+(.+?)\s+(?:to|into)\s+([\w ]+)$", re.IGNORECASE
-)
-_TIMER_PATTERN = re.compile(
-    r"\b(?:set|start)\s+a?\s*timer\s+for\s+(\d+)\s*(minutes?|mins?|seconds?)",
-    re.IGNORECASE,
-)
-_REMINDER_PATTERN = re.compile(
-    r"\bremind me to\s+(?P<task>.+?)\s+(?P<when>tomorrow|today|next \w+|at\s+.+|on\s+.+)$",
-    re.IGNORECASE,
-)
 
 
 def _safe_eval(node: ast.expr) -> float:
