@@ -43,4 +43,17 @@ describe('Dashboard voice scheduler toggle ARIA attributes', () => {
     expect(toggleBtn).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByText('Schedule a meeting')).toBeInTheDocument();
   });
+
+  test('empty state button has aria-expanded and aria-controls attributes', async () => {
+    render(<Dashboard />);
+
+    const emptyStateBtn = screen.getByRole('button', { name: /schedule your first meeting/i });
+    expect(emptyStateBtn).toHaveAttribute('aria-expanded', 'false');
+    expect(emptyStateBtn).toHaveAttribute('aria-controls', 'voice-scheduler-panel');
+
+    fireEvent.click(emptyStateBtn);
+
+    const panel = document.getElementById('voice-scheduler-panel');
+    expect(panel).toBeInTheDocument();
+  });
 });
