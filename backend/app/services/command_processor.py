@@ -1,6 +1,7 @@
 import ast
 import logging
 import os
+import random
 import re
 import requests
 import threading
@@ -818,7 +819,6 @@ class VoiceCommandProcessor:
             "Octopuses have three hearts, nine brains, and blue blood."
         ]
         
-        import random
         fact = random.choice(facts)
         
         return {
@@ -840,7 +840,6 @@ class VoiceCommandProcessor:
             "What do you call a bear with no teeth? A gummy bear!"
         ]
         
-        import random
         joke = random.choice(jokes)
         
         return {
