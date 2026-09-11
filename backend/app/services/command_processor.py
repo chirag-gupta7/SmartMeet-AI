@@ -65,6 +65,11 @@ _SAFE_UNARY_OPS = {
     ast.USub: lambda a: -a,
 }
 
+# aliases for incoming branch naming + new location validation
+_WEATHER_EXTRACT_PATTERN = _WEATHER_LOCATION_PATTERN
+_TODAY_EVENT_PATTERN = _TODAY_CALENDAR_PATTERN
+_LOCATION_VALIDATION_PATTERN = re.compile(r"^[\w ,.-]+$")
+
 
 def _safe_eval(node: ast.expr) -> float:
     """Evaluate an arithmetic AST composed only of numbers and operators."""
@@ -312,7 +317,7 @@ class VoiceCommandProcessor:
             }
 
         location = location.strip()
-        if len(location) > 100 or not re.match(r'^[\w ,.-]+$', location):
+        if len(location) > 100 or not _LOCATION_VALIDATION_PATTERN.match(location):
             return {
                 'success': False,
                 'error': 'Invalid characters or length in location',

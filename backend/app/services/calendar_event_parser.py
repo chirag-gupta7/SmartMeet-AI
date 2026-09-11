@@ -8,7 +8,24 @@ from .datetime_parser import parse_natural_language_datetime, resolve_timezone
 
 logger = logging.getLogger(__name__)
 
-def create_event_manual_parse(conversation_text, get_calendar_service, timezone_name=None):
+# BOLT OPTIMIZATION: Pre-compile module-level regex patterns to avoid
+# dynamic pattern compilation on every manual calendar event parse.
+_SUMMARY_SEARCH_PATTERN = re.compile(
+    r"(?:schedule|create|add)\s+(?:a\s+)?(.+?)"
+    r"(?:\s+(?:on|at|for|from)\s+.*|$)",
+    re.IGNORECASE,
+)
+_SUMMARY_CLEAN_PATTERN = re.compile(
+    r"(?:tomorrow|today|next week|next month|at \d{1,2}(?::\d{2})?"
+    r"\s*(?:am|pm)?|on \w+ \d{1,2}(?:st|nd|rd|th)?|\d{1,2}(?::\d{2})?"
+    r"\s*(?:am|pm)?).*",
+    re.IGNORECASE,
+)
+
+
+def create_event_manual_parse(
+    conversation_text, get_calendar_service, timezone_name=None
+):
     """
     Manually parses conversation text to create a calendar event.
     This is a fallback if quickAdd fails.
@@ -20,15 +37,15 @@ def create_event_manual_parse(conversation_text, get_calendar_service, timezone_
     """
     logger.info(f"Attempting manual parse for event: {conversation_text}")
     summary = "Untitled Event"
-    
+
     # Simple regex to find common patterns for event summary
     # This regex is improved to be more robust
-    summary_match = re.search(r'(?:schedule|create|add)\s+(?:a\s+)?(.+?)(?:\s+(?:on|at|for|from)\s+.*|$)', conversation_text, re.IGNORECASE)
+    summary_match = _SUMMARY_SEARCH_PATTERN.search(conversation_text)
     if summary_match:
         summary = summary_match.group(1).strip()
-        # Clean up summary if it contains time/date phrases that were part of the summary extraction
-        # This is a heuristic and might need further refinement based on user input patterns
-        summary = re.sub(r'(?:tomorrow|today|next week|next month|at \d{1,2}(?::\d{2})?\s*(?:am|pm)?|on \w+ \d{1,2}(?:st|nd|rd|th)?|\d{1,2}(?::\d{2})?\s*(?:am|pm)?).*', '', summary, flags=re.IGNORECASE).strip()
+        # Clean up summary if it contains time/date phrases that were part
+        # of the summary extraction heuristic.
+        summary = _SUMMARY_CLEAN_PATTERN.sub("", summary).strip()
         if not summary: # Fallback if regex removed everything
             summary = "New Event"
     else:
