@@ -56,7 +56,7 @@ def register():
             {"message": "Name, email, and password are required"}
         ), 400
 
-    if len(name) > 120 or len(email) > 255:
+    if len(name) > 120 or len(email) > 255 or len(password) > 255:
         return jsonify(
             {"message": "Input fields exceed maximum length limits"}
         ), 400
@@ -219,10 +219,12 @@ def update_user():
         if not isinstance(raw_tz, str):
             return jsonify({"message": "Invalid timezone"}), 400
         tz_name = raw_tz.strip()
+        if len(tz_name) > 64:
+            return jsonify({"message": "Invalid timezone"}), 400
         try:
             ZoneInfo(tz_name)
         except Exception:
-            return jsonify({"message": f"Invalid timezone: {tz_name}"}), 400
+            return jsonify({"message": "Invalid timezone"}), 400
         user.timezone = tz_name
 
     db.session.commit()
