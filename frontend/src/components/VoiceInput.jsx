@@ -168,14 +168,14 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
       </div>
 
       {transcript && (
-        <div className="rounded-2xl border border-ink-900/5 bg-slate-50 p-4">
+        <div role="status" aria-live="polite" className="rounded-2xl border border-ink-900/5 bg-slate-50 p-4">
           <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-900/40">You said</p>
           <p className="text-ink-900">“{transcript}”</p>
         </div>
       )}
 
       {(responseMessage || authUrl) && (
-        <div className="rounded-2xl border border-primary-100 bg-primary-50/60 p-4">
+        <div role="status" aria-live="polite" className="rounded-2xl border border-primary-100 bg-primary-50/60 p-4">
           {responseMessage && <p className="text-sm text-ink-900">{responseMessage}</p>}
           {authUrl && (
             <a
