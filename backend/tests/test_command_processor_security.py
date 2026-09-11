@@ -113,6 +113,19 @@ def test_set_reminder_validation():
     assert "exceeds maximum allowed length" in res["error"]
 
 
+def test_calculate_validation():
+    processor = VoiceCommandProcessor()
+    for invalid in ["", "   ", None, 123]:
+        res = processor.calculate(invalid)
+        assert res["success"] is False
+        assert res["error"] == "Invalid expression provided"
+
+    long_expr = "1+" * 251
+    res = processor.calculate(long_expr)
+    assert res["success"] is False
+    assert res["error"] == "Expression is too long"
+
+
 def test_web_search_validation():
     processor = VoiceCommandProcessor()
 
@@ -144,3 +157,16 @@ def test_translate_text_validation():
     res = processor.translate_text("hello", target_language="L" * 101)
     assert res["success"] is False
     assert "exceeds maximum allowed length" in res["error"]
+
+
+def test_get_upcoming_events_validation():
+    processor = VoiceCommandProcessor()
+    for invalid_days in ["invalid", None, [7]]:
+        res = processor.get_upcoming_events(invalid_days)
+        assert res["success"] is False
+        assert res["error"] == "Invalid days parameter provided"
+
+    for out_of_range in [0, -5, 366, 1000]:
+        res = processor.get_upcoming_events(out_of_range)
+        assert res["success"] is False
+        assert res["error"] == "Days parameter out of allowed range"

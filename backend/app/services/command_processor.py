@@ -759,6 +759,26 @@ class VoiceCommandProcessor:
         Uses an AST walk restricted to numeric literals and basic
         arithmetic operators; no dynamic execution of user input.
         """
+        if not isinstance(expression, str) or not expression.strip():
+            return {
+                'success': False,
+                'error': 'Invalid expression provided',
+                'user_message': (
+                    'Please provide a valid mathematical expression.'
+                ),
+            }
+
+        expression = expression.strip()
+        if len(expression) > 500:
+            return {
+                'success': False,
+                'error': 'Expression is too long',
+                'user_message': (
+                    'Mathematical expression is too long (maximum 500'
+                    ' characters).'
+                ),
+            }
+
         logger.info(f"Calculating: {expression}")
 
         try:
@@ -958,16 +978,30 @@ class VoiceCommandProcessor:
     
     def get_upcoming_events(self, days=7) -> Dict[str, Any]:
         """Get upcoming calendar events for the next X days."""
-        logger.info(f"Fetching upcoming calendar events for the next {days} days")
+        try:
+            days = int(days)
+        except (TypeError, ValueError):
+            return {
+                'success': False,
+                'error': 'Invalid days parameter provided',
+                'user_message': 'Please specify a valid number of days.',
+            }
+
+        if days <= 0 or days > 365:
+            return {
+                'success': False,
+                'error': 'Days parameter out of allowed range',
+                'user_message': 'Number of days must be between 1 and 365.',
+            }
+
+        logger.info(
+            f"Fetching upcoming calendar events for the next {days} days"
+        )
 
         if not self.user_id:
             return self._calendar_not_connected()
 
         try:
-            # Convert days parameter to int if it's a string
-            if isinstance(days, str):
-                days = int(days)
-
             from .google_calendar import list_upcoming_events_for_user
 
             events = list_upcoming_events_for_user(self.user_id, max_results=None, days_ahead=days)
