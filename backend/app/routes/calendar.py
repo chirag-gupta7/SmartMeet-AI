@@ -256,8 +256,24 @@ def create_structured_event():
     start_raw = payload.get("start")
     end_raw = payload.get("end")
     location = payload.get("location")
-    notifications = payload.get("notifications") or payload.get("reminders") or []
-    time_zone = payload.get("time_zone") or "UTC"
+    notifications = (
+        payload.get("notifications") or payload.get("reminders") or []
+    )
+    raw_tz = payload.get("time_zone")
+    time_zone = "UTC"
+    if raw_tz is not None:
+        if not isinstance(raw_tz, str):
+            return jsonify(
+                {"success": False, "message": "time_zone must be a string"}
+            ), 400
+        if len(raw_tz) > 64:
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "time_zone must be 64 characters or fewer",
+                }
+            ), 400
+        time_zone = raw_tz.strip() or "UTC"
     raw_text = payload.get("raw_text")  # Optional companion text command
 
     if not isinstance(raw_title, str) or not raw_title.strip() or not start_raw:
