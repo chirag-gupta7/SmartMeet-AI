@@ -87,3 +87,60 @@ def test_set_timer_valid():
     assert res["success"] is True
     assert res["data"]["duration"] == 5
     assert res["data"]["label"] == "Quick Break"
+
+
+def test_set_reminder_validation():
+    processor = VoiceCommandProcessor()
+
+    # Empty text
+    res = processor.set_reminder("", "tomorrow")
+    assert res["success"] is False
+    assert res["error"] == "Invalid reminder text provided"
+
+    # Oversized text
+    res = processor.set_reminder("A" * 1001, "tomorrow")
+    assert res["success"] is False
+    assert "exceeds maximum allowed length" in res["error"]
+
+    # Empty when
+    res = processor.set_reminder("buy milk", "")
+    assert res["success"] is False
+    assert res["error"] == "Invalid reminder time provided"
+
+    # Oversized when
+    res = processor.set_reminder("buy milk", "B" * 256)
+    assert res["success"] is False
+    assert "exceeds maximum allowed length" in res["error"]
+
+
+def test_web_search_validation():
+    processor = VoiceCommandProcessor()
+
+    # Empty query
+    res = processor.web_search("   ")
+    assert res["success"] is False
+    assert res["error"] == "Invalid search query provided"
+
+    # Oversized query
+    res = processor.web_search("Q" * 501)
+    assert res["success"] is False
+    assert "exceeds maximum allowed length" in res["error"]
+
+
+def test_translate_text_validation():
+    processor = VoiceCommandProcessor()
+
+    # Empty text
+    res = processor.translate_text("")
+    assert res["success"] is False
+    assert res["error"] == "Invalid text provided for translation"
+
+    # Oversized text
+    res = processor.translate_text("T" * 5001)
+    assert res["success"] is False
+    assert "exceeds maximum allowed length" in res["error"]
+
+    # Oversized target language
+    res = processor.translate_text("hello", target_language="L" * 101)
+    assert res["success"] is False
+    assert "exceeds maximum allowed length" in res["error"]
