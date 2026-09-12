@@ -1129,6 +1129,20 @@ class VoiceCommandProcessor:
     
     def find_free_time(self, date: str = None) -> Dict[str, Any]:
         """Find free time slots in the calendar."""
+        if date is not None:
+            if not isinstance(date, str):
+                return {
+                    'success': False,
+                    'error': 'Invalid date parameter provided',
+                    'user_message': 'Please provide a valid date string.',
+                }
+            if len(date.strip()) > 100:
+                return {
+                    'success': False,
+                    'error': 'Date parameter exceeds maximum allowed length of 100 characters',
+                    'user_message': 'Date parameter is too long (maximum 100 characters).',
+                }
+
         logger.info(f"Finding free time slots in calendar for date: {date or 'today'}")
 
         if not self.user_id:
