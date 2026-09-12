@@ -120,6 +120,9 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
     }
   };
 
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  const shortcutHint = isMac ? 'Cmd + Space' : 'Ctrl + Space';
+
   const stateClasses = isListening
     ? 'bg-red-500 hover:bg-red-600'
     : isPlayingAudio
@@ -161,7 +164,7 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
             )}
           </p>
           <span className="inline-flex items-center gap-1 text-xs text-ink-900/40">
-            or press <kbd className="rounded border border-ink-900/20 bg-white px-1.5 py-0.5 text-[10px] font-semibold shadow-xs">Ctrl + Space</kbd>
+            or press <kbd className="rounded border border-ink-900/20 bg-white px-1.5 py-0.5 text-[10px] font-semibold shadow-xs">{shortcutHint}</kbd>
           </span>
         </div>
       </div>
