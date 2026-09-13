@@ -41,6 +41,16 @@ def test_day_after_tomorrow_is_two_days_out():
     assert result["start_datetime"].hour == 15
 
 
+def test_capitalized_day_keyword_parses_successfully():
+    result = parse_natural_language_datetime("Team offsite Today", UTC)
+    assert result["success"] is True
+    assert result["is_all_day"] is True
+
+    result2 = parse_natural_language_datetime("Team offsite Weekend", UTC)
+    assert result2["success"] is True
+    assert result2["is_all_day"] is True
+
+
 def test_day_keyword_without_time_is_all_day():
     result = parse_natural_language_datetime("team offsite next Friday", UTC)
     now = datetime.now(ZoneInfo(UTC))
