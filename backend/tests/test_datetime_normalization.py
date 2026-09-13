@@ -83,7 +83,7 @@ def test_local_events_listing_includes_recent_meeting(client, user_factory, auth
         "/api/meetings",
         json={
             "title": "Recent",
-            "start_time": "2026-09-05T10:00:00",
+            "start_time": datetime.utcnow().isoformat(),
             "duration": 20,
         },
         headers=headers,
