@@ -30,6 +30,7 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { AuthProvider } from '../context/AuthContext';
 import Login from '../pages/Login';
 import OAuthCallback from '../components/OAuthCallback';
+import GoogleButton from '../components/GoogleButton';
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -100,5 +101,20 @@ describe('Google login flow regression (H2a)', () => {
 
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true }));
     expect(authService.googleLogin).not.toHaveBeenCalled();
+  });
+
+  test('GoogleButton renders aria-live="polite" text container and responds to loading state', () => {
+    const { rerender } = render(<GoogleButton onClick={jest.fn()} label="Continue with Google" loading={false} />);
+    const button = screen.getByRole('button');
+    const liveRegion = screen.getByText('Continue with Google');
+
+    expect(button).not.toBeDisabled();
+    expect(liveRegion).toHaveAttribute('aria-live', 'polite');
+
+    rerender(<GoogleButton onClick={jest.fn()} label="Continue with Google" loading={true} />);
+    const loadingRegion = screen.getByText('Connecting…');
+
+    expect(button).toBeDisabled();
+    expect(loadingRegion).toHaveAttribute('aria-live', 'polite');
   });
 });
