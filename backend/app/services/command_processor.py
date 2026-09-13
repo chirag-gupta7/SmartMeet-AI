@@ -390,7 +390,22 @@ class VoiceCommandProcessor:
                 'user_message': f"Sorry, I couldn't get the weather for {location}. Please try again or try another location."
             }
 
-    def get_news(self) -> Dict[str, Any]:
+    def get_news(self, category: str = "general") -> Dict[str, Any]:
+        """
+        Get top headlines (placeholder for real news API integration).
+        Validates category input length to prevent potential injection or DoS.
+        """
+        if category is not None:
+            if not isinstance(category, str):
+                category = str(category)
+            category = category.strip()
+            if len(category) > 100 or not _LOCATION_VALIDATION_PATTERN.match(category):
+                return {
+                    'success': False,
+                    'error': 'Invalid category provided',
+                    'user_message': 'Please provide a valid news category.'
+                }
+
         """
         Get top headlines (placeholder for real news API integration).
         """
