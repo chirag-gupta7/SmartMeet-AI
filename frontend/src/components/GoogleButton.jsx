@@ -13,7 +13,7 @@ const GoogleButton = ({ onClick, label, loading, disabled }) => (
       <path fill="#FBBC05" d="M6.33 14.78a6 6 0 0 1 0-3.56v-1.5H4.39a10 10 0 0 0 0 8.2l1.94-1.5Z" />
       <path fill="#EA4335" d="M12 5.38c1.49 0 2.83.51 3.89 1.52l1.46-1.46A9.97 9.97 0 0 0 12 2a10 10 0 0 0-7.61 3.52l1.94 1.5C7.13 7.16 9.36 5.38 12 5.38Z" />
     </svg>
-    {loading ? 'Connecting…' : label}
+    <span aria-live="polite">{loading ? 'Connecting…' : label}</span>
   </button>
 );
 
