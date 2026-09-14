@@ -37,7 +37,7 @@ def test_register_non_string_fields_returns_400(client):
 
 
 def test_register_oversized_input_fields_returns_400(client):
-    """Oversized name or email in register must be rejected with 400."""
+    """Oversized name, email, or password in register must be 400."""
     long_name = "A" * 121
     payload = {
         "name": long_name,
@@ -48,13 +48,31 @@ def test_register_oversized_input_fields_returns_400(client):
     assert resp.status_code == 400
     assert "exceed" in resp.get_json()["message"]
 
+    long_password = "P" * 256
+    payload_pw = {
+        "name": "Valid Name",
+        "email": "valid_pw@example.com",
+        "password": long_password,
+    }
+    resp_pw = client.post("/api/auth/register", json=payload_pw)
+    assert resp_pw.status_code == 400
+    assert "exceed" in resp_pw.get_json()["message"]
+
 
 def test_login_non_string_fields_returns_401(client):
-    """Non-string inputs in login must be rejected with 401."""
+    """Non-string or oversized inputs in login must be rejected with 401."""
     payload = {"email": 12345, "password": ["secret"]}
     resp = client.post("/api/auth/login", json=payload)
     assert resp.status_code == 401
     assert "Invalid email or password" in resp.get_json()["message"]
+
+    long_payload = {
+        "email": "valid@example.com",
+        "password": "X" * 256,
+    }
+    resp_long = client.post("/api/auth/login", json=long_payload)
+    assert resp_long.status_code == 401
+    assert "Invalid email or password" in resp_long.get_json()["message"]
 
 
 def test_update_user_non_string_or_oversized_name_returns_400(
