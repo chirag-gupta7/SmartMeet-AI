@@ -61,6 +61,22 @@ _NEXT_WEEKDAY_PATTERNS = [
 ]
 _THIS_WEEKEND_PATTERN = re.compile(r"this\s+weekend", re.IGNORECASE)
 
+# BOLT OPTIMIZATION: Module-scoped constant tuple eliminates list allocations
+# and redundant .lower() calls inside parse_natural_language_datetime.
+_DAY_KEYWORDS = (
+    "tomorrow",
+    "today",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+    "next week",
+    "weekend",
+)
+
 
 def _fallback_utc():
     """
@@ -267,22 +283,8 @@ def parse_natural_language_datetime(text, timezone_name=None):
                 end_datetime = base_date + timedelta(hours=1)
                 break
 
-    day_keywords = [
-        "tomorrow",
-        "today",
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
-        "sunday",
-        "next week",
-        "weekend",
-    ]
-
     if not time_found and not is_all_day:
-        if any(keyword in text.lower() for keyword in day_keywords):
+        if any(keyword in text for keyword in _DAY_KEYWORDS):
             is_all_day = True
             base_date = base_date.replace(
                 hour=0, minute=0, second=0, microsecond=0
@@ -290,7 +292,7 @@ def parse_natural_language_datetime(text, timezone_name=None):
             end_datetime = None
 
     if not time_found and not day_signal_found and not any(
-        keyword in text.lower() for keyword in day_keywords
+        keyword in text for keyword in _DAY_KEYWORDS
     ):
         err_msg = (
             f"Could not find any date or time information in: "
