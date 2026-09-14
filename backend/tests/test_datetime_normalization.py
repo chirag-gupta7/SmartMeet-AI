@@ -1,7 +1,7 @@
 """Regression tests: datetimes sent with offsets (Z / +05:30) are normalized
 to naive UTC before storage, and the local-events window filter uses naive
 UTC so aware/naive values never mix inside a query."""
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.extensions import db
 from app.models import Meeting
@@ -15,11 +15,16 @@ def _headers(client, user_factory, auth_headers, email):
 def test_create_meeting_with_offset_start_is_stored_as_naive_utc(
     client, user_factory, auth_headers
 ):
-    headers = _headers(client, user_factory, auth_headers, "tz-meet@example.com")
+    headers = _headers(
+        client, user_factory, auth_headers, "tz-meet@example.com"
+    )
 
     resp = client.post(
         "/api/meetings",
-        json={"title": "Offset meeting", "start_time": "2026-09-01T10:00:00+05:30"},
+        json={
+            "title": "Offset meeting",
+            "start_time": "2026-09-01T10:00:00+05:30",
+        },
         headers=headers,
     )
     assert resp.status_code == 201
@@ -34,8 +39,12 @@ def test_create_meeting_with_offset_start_is_stored_as_naive_utc(
         assert stored.start_time == datetime(2026, 9, 1, 4, 30)
 
 
-def test_update_meeting_with_z_suffix_is_normalized(client, user_factory, auth_headers):
-    headers = _headers(client, user_factory, auth_headers, "tz-update@example.com")
+def test_update_meeting_with_z_suffix_is_normalized(
+    client, user_factory, auth_headers
+):
+    headers = _headers(
+        client, user_factory, auth_headers, "tz-update@example.com"
+    )
 
     created = client.post(
         "/api/meetings",
@@ -56,7 +65,9 @@ def test_update_meeting_with_z_suffix_is_normalized(client, user_factory, auth_h
 def test_structured_event_with_offset_start_is_stored_naive_utc(
     client, user_factory, auth_headers
 ):
-    headers = _headers(client, user_factory, auth_headers, "tz-event@example.com")
+    headers = _headers(
+        client, user_factory, auth_headers, "tz-event@example.com"
+    )
 
     resp = client.post(
         "/api/calendar/events",
@@ -74,16 +85,22 @@ def test_structured_event_with_offset_start_is_stored_naive_utc(
     assert event["start"] == "2026-09-03T12:00:00"
 
 
-def test_local_events_listing_includes_recent_meeting(client, user_factory, auth_headers):
+def test_local_events_listing_includes_recent_meeting(
+    client, user_factory, auth_headers
+):
     """The window filter previously mixed an aware 'now' with naive stored
     values; it must query in the same convention as storage."""
-    headers = _headers(client, user_factory, auth_headers, "tz-list@example.com")
+    headers = _headers(
+        client, user_factory, auth_headers, "tz-list@example.com"
+    )
 
+    now_plus_1d = datetime.now() + timedelta(days=1)
+    start_str = now_plus_1d.replace(microsecond=0).isoformat()
     created = client.post(
         "/api/meetings",
         json={
             "title": "Recent",
-            "start_time": "2026-09-05T10:00:00",
+            "start_time": start_str,
             "duration": 20,
         },
         headers=headers,
