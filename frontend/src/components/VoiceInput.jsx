@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Mic, Square, Volume2, ArrowRight } from 'lucide-react';
+import { Mic, Square, Volume2, ArrowRight, Loader2 } from 'lucide-react';
 import { voiceService } from '../services/voiceService';
 import api from '../services/api';
 
-const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) => {
+const VoiceInput = ({ onTranscript, onProcessing, isProcessing = false, responseMessage, authUrl }) => {
   const [isListening, setIsListening] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -99,6 +99,7 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
   }, []);
 
   const getAriaLabel = () => {
+    if (isProcessing) return 'Processing voice command';
     if (isListening) return 'Stop listening';
     if (isPlayingAudio) return 'Interrupt AI response';
     if (isFirstInteraction) return 'Start voice assistant';
@@ -120,11 +121,13 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
     }
   };
 
-  const stateClasses = isListening
-    ? 'bg-red-500 hover:bg-red-600'
-    : isPlayingAudio
-      ? 'bg-emerald-500 hover:bg-emerald-600'
-      : 'bg-brand-gradient hover:opacity-90';
+  const stateClasses = isProcessing
+    ? 'bg-primary-500 hover:bg-primary-600'
+    : isListening
+      ? 'bg-red-500 hover:bg-red-600'
+      : isPlayingAudio
+        ? 'bg-emerald-500 hover:bg-emerald-600'
+        : 'bg-brand-gradient hover:opacity-90';
 
   return (
     <div className="space-y-5">
@@ -136,13 +139,16 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
           <button
             type="button"
             onClick={handleInteraction}
-            disabled={!voiceService.isSupported()}
+            disabled={!voiceService.isSupported() || isProcessing}
             aria-label={getAriaLabel()}
             aria-pressed={isListening || isPlayingAudio}
+            aria-busy={isProcessing}
             title={getAriaLabel()}
-            className={`relative flex h-24 w-24 items-center justify-center rounded-full text-white shadow-glow transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-300 ${stateClasses} ${!voiceService.isSupported() ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105'}`}
+            className={`relative flex h-24 w-24 items-center justify-center rounded-full text-white shadow-glow transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-300 ${stateClasses} ${!voiceService.isSupported() || isProcessing ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:scale-105'}`}
           >
-            {isListening ? (
+            {isProcessing ? (
+              <Loader2 className="h-9 w-9 animate-spin" />
+            ) : isListening ? (
               <Square className="h-9 w-9 fill-current" />
             ) : isPlayingAudio ? (
               <Volume2 className="h-9 w-9" />
