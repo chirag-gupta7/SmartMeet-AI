@@ -24,10 +24,29 @@ describe('Layout component accessibility', () => {
     const meetingsLink = within(mobileNav).getByRole('link', { name: 'Meetings dashboard' });
     expect(meetingsLink).toBeInTheDocument();
     expect(meetingsLink.className).toContain('focus-visible:ring-2');
+    expect(meetingsLink).toHaveAttribute('aria-current', 'page');
+
+    const settingsLink = within(mobileNav).getByRole('link', { name: 'Settings' });
+    expect(settingsLink).toBeInTheDocument();
+    expect(settingsLink).not.toHaveAttribute('aria-current');
 
     const logoutBtn = within(mobileNav).getByRole('button', { name: 'Log out' });
     expect(logoutBtn).toBeInTheDocument();
     expect(logoutBtn.className).toContain('focus-visible:ring-2');
+  });
+
+  test('renders desktop sidebar and mobile nav with aria-current="page" on active route link', () => {
+    render(
+      <MemoryRouter initialEntries={['/settings']}>
+        <Layout />
+      </MemoryRouter>
+    );
+
+    const dashboardLinks = screen.getAllByRole('link', { name: /(Dashboard|Meetings dashboard)/i });
+    const settingsLinks = screen.getAllByRole('link', { name: 'Settings' });
+
+    dashboardLinks.forEach((link) => expect(link).not.toHaveAttribute('aria-current'));
+    settingsLinks.forEach((link) => expect(link).toHaveAttribute('aria-current', 'page'));
   });
 
   test('renders skip to main content link targeting main content area', () => {
