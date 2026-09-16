@@ -9,3 +9,7 @@
 ## 2026-09-01 - Error Recovery and Live Feedback in Asynchronous UI
 **Learning:** Transient Web API errors (like Web Speech API timeouts or recognition errors) permanently disable key controls if error state isn't resetable, trapping users. Combining `role="alert"` for screen reader announcements with an explicit "Try again" action button restores user agency without page reloads.
 **Action:** Provide explicit inline retry actions inside error banners with `role="alert"` for transient UI/speech errors, and keep interactive controls enabled for retry attempts when supported.
+
+## 2026-09-12 - Separate Transient Runtime Errors from Feature Support to Preserve Recovery Actions
+**Learning:** Disabling primary interactive buttons upon transient errors locks users out of retrying the action (since disabled buttons do not receive click events), preventing error recovery even when error-handling functions contain reset logic.
+**Action:** Only disable controls when a feature is permanently unsupported in the environment, and provide accessible explicit dismiss/retry controls alongside transient error alerts.
