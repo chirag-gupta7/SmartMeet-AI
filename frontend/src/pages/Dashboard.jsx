@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { CalendarDays, Plus, Clock, CalendarCheck, Sparkles, ArrowRight } from 'lucide-react';
+import { CalendarDays, Plus, Clock, CalendarCheck, Sparkles, ArrowRight, CheckCircle2, X } from 'lucide-react';
 import VoiceInput from '../components/VoiceInput';
 import { meetingService } from '../services/api';
 
@@ -16,6 +16,7 @@ const Dashboard = () => {
   const [processing, setProcessing] = useState(false);
   const [showVoiceInput, setShowVoiceInput] = useState(false);
   const [responseMessage, setResponseMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [authUrl, setAuthUrl] = useState(null);
 
   useEffect(() => { loadMeetings(); }, []);
@@ -57,6 +58,7 @@ const Dashboard = () => {
   const handleVoiceTranscript = async (transcript) => {
     try {
       setProcessing(true);
+      setSuccessMessage('');
       const result = await meetingService.processVoiceCommand(transcript);
       setResponseMessage(result?.message || '');
 
@@ -66,6 +68,8 @@ const Dashboard = () => {
       }
       setAuthUrl(null);
       if (result?.success) {
+        setSuccessMessage(result?.message || 'Meeting scheduled successfully!');
+        setResponseMessage('');
         await loadMeetings();
         setShowVoiceInput(false);
       }
@@ -90,7 +94,10 @@ const Dashboard = () => {
         </div>
         <button
           type="button"
-          onClick={() => setShowVoiceInput((v) => !v)}
+          onClick={() => {
+            setSuccessMessage('');
+            setShowVoiceInput((v) => !v);
+          }}
           aria-expanded={showVoiceInput}
           aria-controls="voice-scheduler-panel"
           className="btn-primary"
@@ -99,6 +106,28 @@ const Dashboard = () => {
           {showVoiceInput ? 'Close scheduler' : 'Schedule a meeting'}
         </button>
       </div>
+
+      {/* Success Banner */}
+      {successMessage && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4 text-sm font-medium text-emerald-800 animate-fade-in"
+        >
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="h-5 w-5 flex-none text-emerald-600" />
+            <span>{successMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSuccessMessage('')}
+            className="rounded-lg p-1 text-emerald-700 hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            aria-label="Dismiss message"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3 animate-fade-in-up">

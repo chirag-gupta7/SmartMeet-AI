@@ -1,6 +1,7 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import Dashboard from '../pages/Dashboard';
+import { meetingService } from '../services/api';
 
 // Mock meetingService API
 jest.mock('../services/api', () => ({
@@ -15,12 +16,27 @@ jest.mock('../services/api', () => ({
 
 // Mock VoiceInput component to simplify test
 jest.mock('../components/VoiceInput', () => {
-  return function MockVoiceInput() {
-    return <div data-testid="mock-voice-input">Voice Input</div>;
+  return function MockVoiceInput({ onTranscript }) {
+    return (
+      <div data-testid="mock-voice-input">
+        <button
+          type="button"
+          onClick={() => onTranscript('Schedule test meeting')}
+          data-testid="simulate-transcript-btn"
+        >
+          Submit Transcript
+        </button>
+      </div>
+    );
   };
 });
 
 describe('Dashboard voice scheduler toggle ARIA attributes', () => {
+  beforeEach(() => {
+    meetingService.getMeetings.mockResolvedValue({ meetings: [] });
+    meetingService.processVoiceCommand.mockResolvedValue({ success: true, message: 'Done' });
+  });
+
   test('toggle button updates aria-expanded and controls voice-scheduler-panel', async () => {
     render(<Dashboard />);
 
@@ -42,5 +58,27 @@ describe('Dashboard voice scheduler toggle ARIA attributes', () => {
 
     expect(toggleBtn).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByText('Schedule a meeting')).toBeInTheDocument();
+  });
+
+  test('displays dismissible success banner with role="status" on successful voice command', async () => {
+    render(<Dashboard />);
+
+    // Open voice scheduler
+    fireEvent.click(screen.getByRole('button', { name: /schedule a meeting/i }));
+
+    // Click mock voice input trigger to fire transcript
+    fireEvent.click(screen.getByTestId('simulate-transcript-btn'));
+
+    // Verify success banner with text 'Done' and role="status" is displayed
+    const bannerText = await screen.findByText('Done');
+    expect(bannerText).toBeInTheDocument();
+    const statusContainer = bannerText.closest('[role="status"]');
+    expect(statusContainer).toBeInTheDocument();
+
+    // Dismiss the success banner
+    const dismissBtn = screen.getByRole('button', { name: /dismiss message/i });
+    fireEvent.click(dismissBtn);
+
+    expect(screen.queryByText('Done')).not.toBeInTheDocument();
   });
 });
