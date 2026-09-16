@@ -56,7 +56,7 @@ def register():
             {"message": "Name, email, and password are required"}
         ), 400
 
-    if len(name) > 120 or len(email) > 255:
+    if len(name) > 120 or len(email) > 255 or len(password) > 255:
         return jsonify(
             {"message": "Input fields exceed maximum length limits"}
         ), 400
@@ -93,7 +93,7 @@ def login():
     email = raw_email.strip().lower()
     password = raw_password
 
-    if not email or not password:
+    if not email or not password or len(email) > 255 or len(password) > 255:
         return jsonify({"message": "Invalid email or password"}), 401
 
     user = User.query.filter_by(email=email).first()
