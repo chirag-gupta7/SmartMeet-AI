@@ -8,6 +8,7 @@ def test_security_headers_present_on_api_responses(client):
     assert (
         res.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
     )
+    assert res.headers.get("Content-Security-Policy") == "default-src 'self'"
 
 
 def test_security_headers_present_on_auth_endpoint(client):
@@ -19,3 +20,4 @@ def test_security_headers_present_on_auth_endpoint(client):
         response.headers.get("Referrer-Policy")
         == "strict-origin-when-cross-origin"
     )
+    assert response.headers.get("Content-Security-Policy") == "default-src 'self'"
