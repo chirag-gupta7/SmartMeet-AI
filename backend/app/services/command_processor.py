@@ -445,7 +445,7 @@ class VoiceCommandProcessor:
 
         text = text.strip()
         when = when.strip()
-        logger.info(f"Setting reminder: {text} for time: {when}")
+        logger.info(f"Setting reminder: {text[:50]} for time: {when[:50]}")
         
         # This is a placeholder for actual reminder setting
         # In a real implementation, we would use a persistent storage
@@ -472,7 +472,7 @@ class VoiceCommandProcessor:
         to prevent resource exhaustion and DoS.
         """
         try:
-            if not isinstance(duration_minutes, (int, float, str)):
+            if isinstance(duration_minutes, bool) or not isinstance(duration_minutes, (int, float, str)):
                 return {
                     'success': False,
                     'error': 'Invalid duration type',
@@ -491,8 +491,14 @@ class VoiceCommandProcessor:
             if duration_minutes <= 0:
                 return {
                     'success': False,
-                    'error': 'Invalid duration',
-                    'user_message': 'Please specify a positive duration in minutes.'
+                    'error': (
+                        'Duration must be an integer between 1 and 1440'
+                        ' minutes (24 hours).'
+                    ),
+                    'user_message': (
+                        'Please specify a duration between 1 minute and 24'
+                        ' hours.'
+                    ),
                 }
 
             if duration_minutes > 1440:
@@ -690,7 +696,7 @@ class VoiceCommandProcessor:
                 'user_message': 'Search query is too long (maximum 500 characters).'
             }
 
-        logger.info(f"Performing web search for: {query_str}")
+        logger.info(f"Performing web search for: {query_str[:50]}")
         
         # Demo response (integrate with real search API like Google Custom Search or Bing)
         return {
@@ -736,7 +742,7 @@ class VoiceCommandProcessor:
                 'user_message': 'Target language name is too long.'
             }
 
-        logger.info(f"Translating '{text_str}' to {lang_str}")
+        logger.info(f"Translating '{text_str[:50]}' to {lang_str[:50]}")
         
         # Demo response (integrate with Google Translate or similar)
         translations = {
@@ -784,10 +790,10 @@ class VoiceCommandProcessor:
                 ),
             }
 
-        logger.info(f"Calculating: {expression}")
+        logger.info(f"Calculating: {expression[:50]}")
 
         try:
-            tree = ast.parse(str(expression), mode='eval')
+            tree = ast.parse(expression, mode='eval')
             result = _safe_eval(tree)
 
             return {
