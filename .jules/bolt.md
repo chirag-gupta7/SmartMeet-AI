@@ -49,3 +49,7 @@
 ## 2026-06-29 - Fast ISO Datetime Parsing in Google Calendar Normalization
 **Learning:** Normalizing arrays of external calendar events previously called `start_val.replace('Z', '+00:00')` on every event string, causing unnecessary string allocations. Reusing `parse_iso_datetime` takes advantage of Python 3.11+ direct fast `datetime.fromisoformat` without string allocations.
 **Action:** Use `parse_iso_datetime` consistently for ISO8601 string parsing across services and route handlers.
+
+## 2026-09-17 - Composite Indexing for User Meeting Queries
+**Learning:** Queries filtering by `owner_id` and ordering or filtering by `start_time` (`WHERE owner_id = ? AND start_time >= ? ORDER BY start_time ASC`) were triggering `USE TEMP B-TREE FOR ORDER BY` in SQLite because single-column indexes on `owner_id` and `start_time` cannot serve both filtering and sorting simultaneously.
+**Action:** Always create a composite index on `(owner_id, start_time)` when queries frequently retrieve entity collections for a specific user ordered by date.

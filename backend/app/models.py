@@ -78,6 +78,13 @@ class User(BaseModel, db.Model):
 class Meeting(BaseModel, db.Model):
     __tablename__ = "meetings"
 
+    # BOLT OPTIMIZATION: Composite index on (owner_id, start_time) allows the
+    # database engine to filter by user and serve results pre-sorted by
+    # start_time directly, eliminating in-memory temporary B-tree sorting.
+    __table_args__ = (
+        db.Index("idx_meetings_owner_start", "owner_id", "start_time"),
+    )
+
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
     start_time = db.Column(db.DateTime, nullable=False, index=True)
