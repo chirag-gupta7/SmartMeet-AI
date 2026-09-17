@@ -38,6 +38,49 @@ def test_sync_calendar_invalid_title(client, auth_headers):
     assert "255 characters or fewer" in res.get_json()["message"]
 
 
+def test_create_structured_event_invalid_timezone_and_notifications(
+    client, auth_headers
+):
+    # Non-string time_zone
+    res = client.post(
+        "/api/calendar/events",
+        headers=auth_headers,
+        json={
+            "title": "Meeting",
+            "start": "2026-05-01T10:00:00Z",
+            "time_zone": 12345,
+        },
+    )
+    assert res.status_code == 400
+    assert "time_zone must be a string" in res.get_json()["message"]
+
+    # Oversized time_zone
+    res = client.post(
+        "/api/calendar/events",
+        headers=auth_headers,
+        json={
+            "title": "Meeting",
+            "start": "2026-05-01T10:00:00Z",
+            "time_zone": "Z" * 65,
+        },
+    )
+    assert res.status_code == 400
+    assert "64 characters or fewer" in res.get_json()["message"]
+
+    # Non-list notifications
+    res = client.post(
+        "/api/calendar/events",
+        headers=auth_headers,
+        json={
+            "title": "Meeting",
+            "start": "2026-05-01T10:00:00Z",
+            "notifications": "10",
+        },
+    )
+    assert res.status_code == 400
+    assert "notifications must be a list" in res.get_json()["message"]
+
+
 def test_sync_calendar_invalid_description(client, auth_headers):
     # Non-string description
     res = client.post(
