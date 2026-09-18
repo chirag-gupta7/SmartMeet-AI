@@ -76,18 +76,6 @@ def create_app(config_class: type[Config] | None = None) -> Flask:
     return app
 
 
-def register_security_headers(app: Flask) -> None:
-    @app.after_request
-    def set_security_headers(response):
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers[
-            "Referrer-Policy"
-        ] = "strict-origin-when-cross-origin"
-        return response
-
-
 def register_extensions(app: Flask) -> None:
     db.init_app(app)
     migrate.init_app(app, db)
@@ -103,6 +91,7 @@ def register_security_headers(app: Flask) -> None:
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = "default-src 'self'"
         return response
 
 
