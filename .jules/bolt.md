@@ -49,3 +49,7 @@
 ## 2026-06-29 - Fast ISO Datetime Parsing in Google Calendar Normalization
 **Learning:** Normalizing arrays of external calendar events previously called `start_val.replace('Z', '+00:00')` on every event string, causing unnecessary string allocations. Reusing `parse_iso_datetime` takes advantage of Python 3.11+ direct fast `datetime.fromisoformat` without string allocations.
 **Action:** Use `parse_iso_datetime` consistently for ISO8601 string parsing across services and route handlers.
+
+## 2026-09-19 - Module-level Constants for Hot-Path Datetime Parsing & Imports
+**Learning:** Defining list structures inside hot-path functions (e.g. `day_keywords` in `parse_natural_language_datetime`) creates redundant object allocations on every function execution. Additionally, calling `.lower()` on already-lowercased strings inside search loops adds unnecessary string overhead.
+**Action:** Extract static collection literals to module-level tuple constants and reuse pre-lowercased variables in string searches.

@@ -79,11 +79,12 @@ def test_local_events_listing_includes_recent_meeting(client, user_factory, auth
     values; it must query in the same convention as storage."""
     headers = _headers(client, user_factory, auth_headers, "tz-list@example.com")
 
+    recent_start = datetime.utcnow().isoformat()
     created = client.post(
         "/api/meetings",
         json={
             "title": "Recent",
-            "start_time": "2026-09-05T10:00:00",
+            "start_time": recent_start,
             "duration": 20,
         },
         headers=headers,
