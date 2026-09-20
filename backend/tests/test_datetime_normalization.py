@@ -74,16 +74,20 @@ def test_structured_event_with_offset_start_is_stored_naive_utc(
     assert event["start"] == "2026-09-03T12:00:00"
 
 
+from datetime import timezone
+
+
 def test_local_events_listing_includes_recent_meeting(client, user_factory, auth_headers):
     """The window filter previously mixed an aware 'now' with naive stored
     values; it must query in the same convention as storage."""
     headers = _headers(client, user_factory, auth_headers, "tz-list@example.com")
 
+    now_iso = datetime.now(timezone.utc).isoformat()
     created = client.post(
         "/api/meetings",
         json={
             "title": "Recent",
-            "start_time": "2026-09-05T10:00:00",
+            "start_time": now_iso,
             "duration": 20,
         },
         headers=headers,
