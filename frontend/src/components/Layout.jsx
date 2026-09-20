@@ -48,7 +48,7 @@ const Layout = () => {
           <Logo />
         </div>
 
-        <nav className="mt-2 flex-1 space-y-1 px-3">
+        <nav aria-label="Main navigation" className="mt-2 flex-1 space-y-1 px-3">
           <SideLink to="/" active={isActive('/')} icon={LayoutGrid} label="Dashboard" />
           <SideLink to="/settings" active={isActive('/settings')} icon={SettingsIcon} label="Settings" />
         </nav>
@@ -87,6 +87,7 @@ const Layout = () => {
           <Link
             to="/"
             aria-label="Meetings dashboard"
+            aria-current={isActive('/') ? 'page' : undefined}
             className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
               isActive('/') ? 'text-primary-600' : 'text-ink-900/55'
             }`}
@@ -97,6 +98,7 @@ const Layout = () => {
           <Link
             to="/settings"
             aria-label="Settings"
+            aria-current={isActive('/settings') ? 'page' : undefined}
             className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
               isActive('/settings') ? 'text-primary-600' : 'text-ink-900/55'
             }`}
@@ -122,6 +124,7 @@ const Layout = () => {
 const SideLink = ({ to, active, icon: Icon, label }) => (
   <Link
     to={to}
+    aria-current={active ? 'page' : undefined}
     className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 ${
       active
         ? 'bg-white/15 text-white shadow-inner'
