@@ -77,13 +77,16 @@ def test_structured_event_with_offset_start_is_stored_naive_utc(
 def test_local_events_listing_includes_recent_meeting(client, user_factory, auth_headers):
     """The window filter previously mixed an aware 'now' with naive stored
     values; it must query in the same convention as storage."""
+    from datetime import timezone
     headers = _headers(client, user_factory, auth_headers, "tz-list@example.com")
 
+    # Use current UTC time so the meeting is within the 7-day window filter
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     created = client.post(
         "/api/meetings",
         json={
             "title": "Recent",
-            "start_time": "2026-09-05T10:00:00",
+            "start_time": now_str,
             "duration": 20,
         },
         headers=headers,
