@@ -77,6 +77,7 @@ def create_app(config_class: type[Config] | None = None) -> Flask:
 
 
 def register_security_headers(app: Flask) -> None:
+    """Set security HTTP headers on all API responses."""
     @app.after_request
     def set_security_headers(response):
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -85,6 +86,7 @@ def register_security_headers(app: Flask) -> None:
         response.headers[
             "Referrer-Policy"
         ] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = "default-src 'self'"
         return response
 
 
@@ -93,17 +95,6 @@ def register_extensions(app: Flask) -> None:
     migrate.init_app(app, db)
     bcrypt.init_app(app)
     jwt.init_app(app)
-
-
-def register_security_headers(app: Flask) -> None:
-    """Set security HTTP headers on all API responses."""
-    @app.after_request
-    def set_security_headers(response):
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        return response
 
 
 def register_healthcheck(app: Flask) -> None:
