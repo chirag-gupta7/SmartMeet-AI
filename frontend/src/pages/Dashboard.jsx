@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { CalendarDays, Plus, Clock, CalendarCheck, Sparkles, ArrowRight } from 'lucide-react';
+import { CalendarDays, Plus, Clock, CalendarCheck, Sparkles, ArrowRight, X } from 'lucide-react';
 import VoiceInput from '../components/VoiceInput';
 import { meetingService } from '../services/api';
 
@@ -13,6 +13,7 @@ const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); r
 
 const Dashboard = () => {
   const [meetings, setMeetings] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [showVoiceInput, setShowVoiceInput] = useState(false);
   const [responseMessage, setResponseMessage] = useState('');
@@ -26,6 +27,8 @@ const Dashboard = () => {
       setMeetings(data.meetings || []);
     } catch (error) {
       console.error('Failed to load meetings:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -95,7 +98,7 @@ const Dashboard = () => {
           aria-controls="voice-scheduler-panel"
           className="btn-primary"
         >
-          <Plus className="h-5 w-5" />
+          {showVoiceInput ? <X className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
           {showVoiceInput ? 'Close scheduler' : 'Schedule a meeting'}
         </button>
       </div>
@@ -133,7 +136,12 @@ const Dashboard = () => {
 
       {/* Meeting list */}
       <div className="space-y-3">
-        {sorted.length === 0 ? (
+        {loading ? (
+          <div role="status" aria-live="polite" className="card flex items-center justify-center gap-2 px-6 py-10 text-sm font-medium text-ink-900/50">
+            <Clock className="h-5 w-5 animate-spin text-primary-500" />
+            <span>Loading meetings…</span>
+          </div>
+        ) : sorted.length === 0 ? (
           <div className="card flex flex-col items-center px-6 py-14 text-center animate-fade-in">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-50 text-primary-500">
               <CalendarDays className="h-8 w-8" />

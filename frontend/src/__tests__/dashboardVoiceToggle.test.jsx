@@ -21,10 +21,18 @@ jest.mock('../components/VoiceInput', () => {
 });
 
 describe('Dashboard voice scheduler toggle ARIA attributes', () => {
+  test('renders loading indicator with role="status" and aria-live="polite" during initial fetch', async () => {
+    render(<Dashboard />);
+    const statusMsg = screen.getByRole('status');
+    expect(statusMsg).toHaveAttribute('aria-live', 'polite');
+    expect(statusMsg).toHaveTextContent(/loading meetings/i);
+    await screen.findByRole('button', { name: /schedule a meeting/i });
+  });
+
   test('toggle button updates aria-expanded and controls voice-scheduler-panel', async () => {
     render(<Dashboard />);
 
-    const toggleBtn = screen.getByRole('button', { name: /schedule a meeting/i });
+    const toggleBtn = await screen.findByRole('button', { name: /schedule a meeting/i });
     expect(toggleBtn).toHaveAttribute('aria-expanded', 'false');
     expect(toggleBtn).toHaveAttribute('aria-controls', 'voice-scheduler-panel');
 
