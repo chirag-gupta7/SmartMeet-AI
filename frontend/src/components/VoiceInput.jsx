@@ -101,6 +101,7 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
   }, []);
 
   const getAriaLabel = () => {
+    if (!isSupported) return 'Voice recognition not supported in this browser';
     if (isListening) return 'Listening. Press to stop recording';
     if (isPlayingAudio) return 'AI is speaking. Press to stop audio';
     if (isFirstInteraction) return 'Start voice assistant';

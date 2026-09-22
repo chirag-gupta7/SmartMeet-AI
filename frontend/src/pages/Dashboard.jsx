@@ -146,6 +146,8 @@ const Dashboard = () => {
               <button
                 type="button"
                 onClick={() => setShowVoiceInput(true)}
+                aria-expanded={showVoiceInput}
+                aria-controls="voice-scheduler-panel"
                 className="btn-primary mt-5"
               >
                 <Plus className="h-4 w-4" />
