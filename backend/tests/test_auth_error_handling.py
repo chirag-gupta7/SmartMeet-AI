@@ -37,7 +37,7 @@ def test_register_non_string_fields_returns_400(client):
 
 
 def test_register_oversized_input_fields_returns_400(client):
-    """Oversized name or email in register must be rejected with 400."""
+    """Oversized fields in register must be rejected with 400."""
     long_name = "A" * 121
     payload = {
         "name": long_name,
@@ -47,6 +47,16 @@ def test_register_oversized_input_fields_returns_400(client):
     resp = client.post("/api/auth/register", json=payload)
     assert resp.status_code == 400
     assert "exceed" in resp.get_json()["message"]
+
+    long_password = "P" * 256
+    payload_pass = {
+        "name": "Valid Name",
+        "email": "validpass@example.com",
+        "password": long_password,
+    }
+    resp_pass = client.post("/api/auth/register", json=payload_pass)
+    assert resp_pass.status_code == 400
+    assert "exceed" in resp_pass.get_json()["message"]
 
 
 def test_login_non_string_fields_returns_401(client):
@@ -78,3 +88,11 @@ def test_update_user_non_string_or_oversized_name_returns_400(
     )
     assert resp2.status_code == 400
     assert "120 characters" in resp2.get_json()["message"]
+
+    resp3 = client.patch(
+        "/api/auth/me",
+        json={"timezone": "T" * 65},
+        headers=headers,
+    )
+    assert resp3.status_code == 400
+    assert resp3.get_json()["message"] == "Invalid timezone"

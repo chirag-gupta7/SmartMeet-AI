@@ -142,6 +142,28 @@ def test_create_structured_event_rejects_invalid_location_and_raw_text(
     )
     assert resp_text_long.status_code == 400
 
+    resp_tz_num = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Valid",
+            "start": "2026-09-01T10:00:00",
+            "time_zone": 12345,
+        },
+        headers=headers,
+    )
+    assert resp_tz_num.status_code == 400
+
+    resp_tz_long = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Valid",
+            "start": "2026-09-01T10:00:00",
+            "time_zone": "Z" * 65,
+        },
+        headers=headers,
+    )
+    assert resp_tz_long.status_code == 400
+
 
 def test_calendar_endpoints_accept_valid_inputs(
     client, user_factory, auth_headers
