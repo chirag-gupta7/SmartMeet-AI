@@ -1,7 +1,7 @@
 """Regression tests: datetimes sent with offsets (Z / +05:30) are normalized
 to naive UTC before storage, and the local-events window filter uses naive
 UTC so aware/naive values never mix inside a query."""
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.extensions import db
 from app.models import Meeting
@@ -79,11 +79,13 @@ def test_local_events_listing_includes_recent_meeting(client, user_factory, auth
     values; it must query in the same convention as storage."""
     headers = _headers(client, user_factory, auth_headers, "tz-list@example.com")
 
+    # Use a start time within 7 days of 'now' so window filter includes it
+    recent_time = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S")
     created = client.post(
         "/api/meetings",
         json={
             "title": "Recent",
-            "start_time": "2026-09-05T10:00:00",
+            "start_time": recent_time,
             "duration": 20,
         },
         headers=headers,

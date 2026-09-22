@@ -170,3 +170,19 @@ def test_get_upcoming_events_validation():
         res = processor.get_upcoming_events(out_of_range)
         assert res["success"] is False
         assert res["error"] == "Days parameter out of allowed range"
+
+
+def test_find_free_time_validation():
+    processor = VoiceCommandProcessor()
+    for invalid_date in [123, [2026], {"date": "today"}]:
+        res = processor.find_free_time(invalid_date)
+        assert res["success"] is False
+        assert res["error"] == "Invalid date parameter provided"
+
+    long_date = "D" * 101
+    res = processor.find_free_time(long_date)
+    assert res["success"] is False
+    assert (
+        res["error"]
+        == "Date parameter exceeds maximum allowed length of 100 characters"
+    )
