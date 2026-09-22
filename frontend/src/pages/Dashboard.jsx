@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { CalendarDays, Plus, Clock, CalendarCheck, Sparkles, ArrowRight } from 'lucide-react';
 import VoiceInput from '../components/VoiceInput';
 import { meetingService } from '../services/api';
@@ -54,7 +54,9 @@ const Dashboard = () => {
     return { sorted: sortedList, today: todayList, week: weekList };
   }, [meetings]);
 
-  const handleVoiceTranscript = async (transcript) => {
+  // BOLT OPTIMIZATION: Memoize voice transcript handler with useCallback to ensure
+  // stable function reference and prevent unnecessary VoiceInput re-renders.
+  const handleVoiceTranscript = useCallback(async (transcript) => {
     try {
       setProcessing(true);
       const result = await meetingService.processVoiceCommand(transcript);
@@ -75,7 +77,7 @@ const Dashboard = () => {
     } finally {
       setProcessing(false);
     }
-  };
+  }, []);
 
   const now = new Date();
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening';
