@@ -160,13 +160,15 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
         </div>
 
         <div className="mt-4 flex flex-col items-center gap-1.5 text-sm font-medium text-ink-900/70">
-          <p role="status" aria-live="polite">
-            {isListening && <span className="text-red-500 animate-pulse">Listening…</span>}
-            {isPlayingAudio && <span className="text-emerald-600">AI is speaking… (tap to interrupt)</span>}
-            {!isListening && !isPlayingAudio && !transcript && !error && (
-              <span className="text-ink-900/50">{isFirstInteraction ? 'Tap to start the assistant' : 'Tap to speak again'}</span>
-            )}
-          </p>
+          {(isListening || isPlayingAudio || (!transcript && !error)) && (
+            <p role="status" aria-live="polite">
+              {isListening && <span className="text-red-500 animate-pulse">Listening…</span>}
+              {isPlayingAudio && <span className="text-emerald-600">AI is speaking… (tap to interrupt)</span>}
+              {!isListening && !isPlayingAudio && !transcript && !error && (
+                <span className="text-ink-900/50">{isFirstInteraction ? 'Tap to start the assistant' : 'Tap to speak again'}</span>
+              )}
+            </p>
+          )}
           <span className="inline-flex items-center gap-1 text-xs text-ink-900/40">
             or press <kbd className="rounded border border-ink-900/20 bg-white px-1.5 py-0.5 text-[10px] font-semibold shadow-xs">{shortcutHint}</kbd>
           </span>
@@ -182,7 +184,7 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
 
       {(responseMessage || authUrl) && (
         <div role="status" aria-live="polite" className="rounded-2xl border border-primary-100 bg-primary-50/60 p-4">
-          {responseMessage && <p role="status" aria-live="polite" className="text-sm text-ink-900">{responseMessage}</p>}
+          {responseMessage && <p className="text-sm text-ink-900">{responseMessage}</p>}
           {authUrl && (
             <a
               href={authUrl}
