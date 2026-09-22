@@ -71,7 +71,7 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error('Failed to process command:', error);
-      setResponseMessage(error.response?.data?.message || 'Failed to process voice command. Please try again.');
+      setResponseMessage(error?.response?.data?.message || 'Failed to process voice command. Please try again.');
     } finally {
       setProcessing(false);
     }
