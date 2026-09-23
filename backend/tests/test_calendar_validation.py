@@ -165,6 +165,56 @@ def test_create_structured_event_rejects_invalid_location_and_raw_text(
     assert resp_tz_long.status_code == 400
 
 
+def test_create_structured_event_rejects_invalid_notifications(
+    client, user_factory, auth_headers
+):
+    user = user_factory(email="calvalnotif@example.com")
+    headers = auth_headers(user.id)
+
+    # Non-list notifications
+    resp_notif_int = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Valid",
+            "start": "2026-09-01T10:00:00",
+            "notifications": 12345,
+        },
+        headers=headers,
+    )
+    assert resp_notif_int.status_code == 400
+    assert (
+        resp_notif_int.get_json()["message"] == "notifications must be a list"
+    )
+
+    # Non-list reminders fallback
+    resp_remind_str = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Valid",
+            "start": "2026-09-01T10:00:00",
+            "reminders": "not a list",
+        },
+        headers=headers,
+    )
+    assert resp_remind_str.status_code == 400
+    assert (
+        resp_remind_str.get_json()["message"] == "notifications must be a list"
+    )
+
+    # Oversized notifications list
+    resp_notif_large = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Valid",
+            "start": "2026-09-01T10:00:00",
+            "notifications": [10] * 51,
+        },
+        headers=headers,
+    )
+    assert resp_notif_large.status_code == 400
+    assert "50 or fewer" in resp_notif_large.get_json()["message"]
+
+
 def test_calendar_endpoints_accept_valid_inputs(
     client, user_factory, auth_headers
 ):
