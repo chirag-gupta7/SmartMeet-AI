@@ -23,7 +23,7 @@ const Dashboard = () => {
   const loadMeetings = async () => {
     try {
       const data = await meetingService.getMeetings();
-      setMeetings(data.meetings || []);
+      setMeetings(data?.meetings || []);
     } catch (error) {
       console.error('Failed to load meetings:', error);
     }

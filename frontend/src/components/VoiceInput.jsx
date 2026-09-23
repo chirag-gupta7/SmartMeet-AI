@@ -180,21 +180,36 @@ const VoiceInput = ({ onTranscript, onProcessing, responseMessage, authUrl }) =>
         </div>
       )}
 
-      {(responseMessage || authUrl) && (
-        <div role="status" aria-live="polite" className="rounded-2xl border border-primary-100 bg-primary-50/60 p-4">
-          {responseMessage && <p role="status" aria-live="polite" className="text-sm text-ink-900">{responseMessage}</p>}
-          {authUrl && (
-            <a
-              href={authUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-glow transition hover:bg-primary-700"
-            >
-              Authorize Google Calendar <ArrowRight className="h-4 w-4" />
-            </a>
-          )}
-        </div>
-      )}
+      {(responseMessage || authUrl) && (() => {
+        const isErrorResponse = responseMessage && /failed|error|please try again/i.test(responseMessage);
+        return (
+          <div
+            role="status"
+            aria-live="polite"
+            className={`rounded-2xl border p-4 ${
+              isErrorResponse
+                ? 'border-red-200 bg-red-50/60'
+                : 'border-primary-100 bg-primary-50/60'
+            }`}
+          >
+            {responseMessage && (
+              <p className={`text-sm ${isErrorResponse ? 'text-red-600 font-medium' : 'text-ink-900'}`}>
+                {responseMessage}
+              </p>
+            )}
+            {authUrl && (
+              <a
+                href={authUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-glow transition hover:bg-primary-700"
+              >
+                Authorize Google Calendar <ArrowRight className="h-4 w-4" />
+              </a>
+            )}
+          </div>
+        );
+      })()}
 
       {error && (
         <div role="alert" className="flex items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
