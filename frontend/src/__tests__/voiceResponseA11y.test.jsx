@@ -54,10 +54,12 @@ describe('Voice command feedback accessibility and error recovery', () => {
       />
     );
 
-    const statusContainer = screen.getByRole('status');
-    expect(statusContainer).toBeInTheDocument();
-    expect(statusContainer).toHaveAttribute('aria-live', 'polite');
-    expect(statusContainer).toHaveTextContent('Meeting scheduled for 2 PM');
+    const statusContainers = screen.getAllByRole('status');
+    const responseContainer = statusContainers.find((el) =>
+      el.textContent.includes('Meeting scheduled for 2 PM')
+    );
+    expect(responseContainer).toBeInTheDocument();
+    expect(responseContainer).toHaveAttribute('aria-live', 'polite');
   });
 
   test('Dashboard shows role="status" processing indicator and handles command errors gracefully', async () => {
