@@ -8,7 +8,7 @@ import threading
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional
-from flask import current_app, Flask
+from flask import current_app, Flask, has_request_context
 from dateutil import parser
 import uuid
 
@@ -270,15 +270,35 @@ class VoiceCommandProcessor:
 
     def _log_command_to_database(self, level: str, message: str, extra_data: Dict = None):
         """Log command events to database, ensuring application context."""
-        if not _flask_app_instance_cp:
-            logger.error("Flask app instance not set for command processor logging. Cannot log to DB.")
-            return
-            
         if not db or not Log:
             logger.warning("Database models not available - logging to console instead")
             logger.info(f"[{level}] {message}")
             return
-            
+
+        # BOLT OPTIMIZATION: When running within an active Flask request,
+        # avoid creating redundant app contexts and calling db.session.remove()
+        # mid-request, which detaches ORM models and destroys the request's DB session.
+        if has_request_context():
+            try:
+                new_log = Log(
+                    user_id=str(self.user_id) if self.user_id else None,
+                    level=level,
+                    message=message,
+                    source='voice_command_processor',
+                    extra_data=extra_data or {}
+                )
+                db.session.add(new_log)
+                db.session.commit()
+            except Exception as e:
+                logger.error(f"Failed to log to database from command processor: {e}")
+                if db and db.session and db.session.is_active:
+                    db.session.rollback()
+            return
+
+        if not _flask_app_instance_cp:
+            logger.error("Flask app instance not set for command processor logging. Cannot log to DB.")
+            return
+
         with _flask_app_instance_cp.app_context():
             try:
                 new_log = Log(
@@ -298,7 +318,7 @@ class VoiceCommandProcessor:
                 except Exception as rollback_e:
                     _flask_app_instance_cp.logger.error(f"Error during rollback for command processor logging: {rollback_e}")
             finally:
-                # Ensure session is cleaned up after each DB operation
+                # Ensure session is cleaned up after background DB operation
                 try:
                     if db and db.session:
                         db.session.remove()
@@ -643,7 +663,41 @@ class VoiceCommandProcessor:
                 'error': 'User not identified.',
                 'user_message': 'I need to know who you are to save a note.'
             }
-            
+
+        # BOLT OPTIMIZATION: When executing within an active Flask request,
+        # avoid db.session.remove() mid-request to preserve session state and ORM models.
+        if has_request_context() and Note:
+            try:
+                new_note = Note(
+                    user_id=self.user_id,
+                    content=note_str
+                )
+                db.session.add(new_note)
+                db.session.commit()
+
+                logger.info(f"Note saved successfully with ID {new_note.id}")
+                user_message = f"Note saved: {note_str[:50]}{'...' if len(note_str) > 50 else ''}"
+
+                return {
+                    'success': True,
+                    'data': {
+                        'note_id': new_note.id,
+                        'content': new_note.content,
+                        'created_at': new_note.created_at.isoformat(),
+                        'message': 'Note saved successfully.'
+                    },
+                    'user_message': user_message
+                }
+            except Exception as e:
+                logger.error(f"Failed to save note to database: {e}")
+                if db and db.session and db.session.is_active:
+                    db.session.rollback()
+                return {
+                    'success': False,
+                    'error': str(e),
+                    'user_message': 'Sorry, I couldn\'t save that note. Please try again.'
+                }
+
         if _flask_app_instance_cp and Note:
             with _flask_app_instance_cp.app_context():
                 try:
