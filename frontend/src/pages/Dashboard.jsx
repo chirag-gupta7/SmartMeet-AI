@@ -123,6 +123,7 @@ const Dashboard = () => {
             <VoiceInput
               onTranscript={handleVoiceTranscript}
               onProcessing={setProcessing}
+              isProcessing={processing}
               responseMessage={responseMessage}
               authUrl={authUrl}
             />
