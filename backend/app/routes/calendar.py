@@ -256,9 +256,6 @@ def create_structured_event():
     start_raw = payload.get("start")
     end_raw = payload.get("end")
     location = payload.get("location")
-    notifications = (
-        payload.get("notifications") or payload.get("reminders") or []
-    )
     raw_tz = payload.get("time_zone")
     time_zone = "UTC"
     if raw_tz is not None:
@@ -274,7 +271,21 @@ def create_structured_event():
                 }
             ), 400
         time_zone = raw_tz.strip() or "UTC"
+    raw_notifications = (
+        payload.get("notifications")
+        if "notifications" in payload
+        else payload.get("reminders")
+    )
     raw_text = payload.get("raw_text")  # Optional companion text command
+
+    if raw_notifications is not None:
+        if not isinstance(raw_notifications, (list, tuple)):
+            return jsonify(
+                {"success": False, "message": "notifications must be a list"}
+            ), 400
+        notifications = list(raw_notifications)
+    else:
+        notifications = []
 
     if not isinstance(raw_title, str) or not raw_title.strip() or not start_raw:
         return jsonify(
