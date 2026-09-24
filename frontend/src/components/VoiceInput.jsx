@@ -166,9 +166,10 @@ const VoiceInput = ({ onTranscript, onProcessing, isProcessing = false, response
 
         <div className="mt-4 flex flex-col items-center gap-1.5 text-sm font-medium text-ink-900/70">
           <p role="status" aria-live="polite">
+            {isProcessing && <span className="text-primary-600 animate-pulse">Processing command…</span>}
             {isListening && <span className="text-red-500 animate-pulse">Listening…</span>}
             {isPlayingAudio && <span className="text-emerald-600">AI is speaking… (tap to interrupt)</span>}
-            {!isListening && !isPlayingAudio && !transcript && !error && (
+            {!isProcessing && !isListening && !isPlayingAudio && !transcript && !error && (
               <span className="text-ink-900/50">{isFirstInteraction ? 'Tap to start the assistant' : 'Tap to speak again'}</span>
             )}
           </p>
@@ -187,7 +188,7 @@ const VoiceInput = ({ onTranscript, onProcessing, isProcessing = false, response
 
       {(responseMessage || authUrl) && (
         <div role="status" aria-live="polite" className="rounded-2xl border border-primary-100 bg-primary-50/60 p-4">
-          {responseMessage && <p role="status" aria-live="polite" className="text-sm text-ink-900">{responseMessage}</p>}
+          {responseMessage && <p className="text-sm text-ink-900">{responseMessage}</p>}
           {authUrl && (
             <a
               href={authUrl}
