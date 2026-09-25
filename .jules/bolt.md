@@ -49,3 +49,7 @@
 ## 2026-06-29 - Fast ISO Datetime Parsing in Google Calendar Normalization
 **Learning:** Normalizing arrays of external calendar events previously called `start_val.replace('Z', '+00:00')` on every event string, causing unnecessary string allocations. Reusing `parse_iso_datetime` takes advantage of Python 3.11+ direct fast `datetime.fromisoformat` without string allocations.
 **Action:** Use `parse_iso_datetime` consistently for ISO8601 string parsing across services and route handlers.
+
+## 2026-07-20 - Module-Level Imports with Module References
+**Learning:** Moving in-function imports to module-level direct function imports (`from .google_calendar import func`) breaks unit tests that use `unittest.mock.patch("app.services.google_calendar.func")` because the importing module holds a direct reference to the original function. Importing the module object at module scope (`from . import google_calendar`) and referencing functions via `google_calendar.func` eliminates repeated in-function import overhead while maintaining compatibility with mock patches.
+**Action:** Prefer importing module objects at top level rather than functions inside methods when methods need to support dynamic test monkeypatching.

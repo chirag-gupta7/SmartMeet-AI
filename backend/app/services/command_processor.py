@@ -14,6 +14,11 @@ import uuid
 
 from ..extensions import db
 from ..models import Log, Note, User
+from ..timeutils import parse_iso_datetime
+from .datetime_parser import resolve_timezone
+# BOLT OPTIMIZATION: Module-level import of google_calendar module eliminates
+# dynamic import overhead while allowing mock patches to intercept functions dynamically.
+from . import google_calendar
 
 logger = logging.getLogger(__name__)
 
@@ -899,9 +904,7 @@ class VoiceCommandProcessor:
             return self._calendar_not_connected()
 
         try:
-            from .google_calendar import list_upcoming_events_for_user
-
-            events = list_upcoming_events_for_user(self.user_id, max_results=1, days_ahead=None)
+            events = google_calendar.list_upcoming_events_for_user(self.user_id, max_results=1, days_ahead=None)
 
             if events is None:
                 return self._calendar_not_connected()
@@ -950,13 +953,11 @@ class VoiceCommandProcessor:
             return self._calendar_not_connected()
 
         try:
-            from .google_calendar import list_upcoming_events_for_user
-
             now = datetime.now(timezone.utc)
             today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
             tomorrow_start = today_start + timedelta(days=1)
 
-            events = list_upcoming_events_for_user(
+            events = google_calendar.list_upcoming_events_for_user(
                 self.user_id,
                 max_results=None,
                 days_ahead=None,
@@ -1027,9 +1028,7 @@ class VoiceCommandProcessor:
             return self._calendar_not_connected()
 
         try:
-            from .google_calendar import list_upcoming_events_for_user
-
-            events = list_upcoming_events_for_user(self.user_id, max_results=None, days_ahead=days)
+            events = google_calendar.list_upcoming_events_for_user(self.user_id, max_results=None, days_ahead=days)
 
             if events is None:
                 return self._calendar_not_connected()
@@ -1093,9 +1092,7 @@ class VoiceCommandProcessor:
             return self._calendar_not_connected()
 
         try:
-            from .google_calendar import create_quick_event_for_user
-
-            result = create_quick_event_for_user(
+            result = google_calendar.create_quick_event_for_user(
                 self.user_id, event_text, timezone_name=self.timezone_name
             )
 
@@ -1169,17 +1166,13 @@ class VoiceCommandProcessor:
             return self._calendar_not_connected()
 
         try:
-            from .google_calendar import query_freebusy_for_user
-            from .datetime_parser import resolve_timezone
-            from ..timeutils import parse_iso_datetime
-
             # Business hours are 9:00-17:00 in the USER's timezone, not UTC.
             tz = resolve_timezone(self.timezone_name)
             now_local = datetime.now(tz)
             start_of_day = now_local.replace(hour=9, minute=0, second=0, microsecond=0)
             end_of_day = now_local.replace(hour=17, minute=0, second=0, microsecond=0)
 
-            busy = query_freebusy_for_user(self.user_id, start_of_day, end_of_day)
+            busy = google_calendar.query_freebusy_for_user(self.user_id, start_of_day, end_of_day)
 
             if busy is None:
                 return self._calendar_not_connected()
@@ -1251,9 +1244,7 @@ class VoiceCommandProcessor:
             return self._calendar_not_connected()
 
         try:
-            from .google_calendar import get_primary_calendar_for_user
-
-            entry = get_primary_calendar_for_user(self.user_id)
+            entry = google_calendar.get_primary_calendar_for_user(self.user_id)
 
             if entry:
                 email = entry.get('id') or entry.get('summary') or 'Unknown email'
