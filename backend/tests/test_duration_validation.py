@@ -1,4 +1,4 @@
-"""Regression tests: malformed or non-positive durations must return 400
+"""Regression tests: malformed, non-positive, or oversized durations must return 400
 instead of raising an unhandled ValueError (HTTP 500) or persisting bad rows."""
 from app.extensions import db
 from app.models import Meeting
@@ -29,6 +29,19 @@ def test_create_meeting_rejects_negative_duration(client, user_factory, auth_hea
     assert Meeting.query.count() == 0
 
 
+def test_create_meeting_rejects_oversized_duration(client, user_factory, auth_headers):
+    user = user_factory(email="dur-over-a@example.com")
+    headers = auth_headers(user.id)
+
+    resp = client.post(
+        "/api/meetings",
+        json={"title": "Oversized duration", "start_time": "2026-09-01T10:00:00", "duration": 1441},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+    assert Meeting.query.count() == 0
+
+
 def test_update_meeting_rejects_bad_duration(client, user_factory, auth_headers):
     user = user_factory(email="dur-c@example.com")
     headers = auth_headers(user.id)
@@ -44,6 +57,11 @@ def test_update_meeting_rejects_bad_duration(client, user_factory, auth_headers)
         f"/api/meetings/{meeting_id}", json={"duration": "soon"}, headers=headers
     )
     assert resp.status_code == 400
+
+    resp_over = client.put(
+        f"/api/meetings/{meeting_id}", json={"duration": 2000}, headers=headers
+    )
+    assert resp_over.status_code == 400
 
     with client.application.app_context():
         meeting = db.session.get(Meeting, meeting_id)
@@ -61,8 +79,15 @@ def test_calendar_sync_rejects_non_integer_duration(client, user_factory, auth_h
     )
     assert resp.status_code == 400
 
+    resp_over = client.post(
+        "/api/calendar/sync",
+        json={"title": "Sync over", "start": "2026-09-01T10:00:00", "duration_minutes": 1500},
+        headers=headers,
+    )
+    assert resp_over.status_code == 400
 
-def test_structured_event_rejects_zero_duration(client, user_factory, auth_headers):
+
+def test_structured_event_rejects_zero_and_oversized_duration(client, user_factory, auth_headers):
     user = user_factory(email="dur-e@example.com")
     headers = auth_headers(user.id)
 
@@ -72,3 +97,10 @@ def test_structured_event_rejects_zero_duration(client, user_factory, auth_heade
         headers=headers,
     )
     assert resp.status_code == 400
+
+    resp_over = client.post(
+        "/api/calendar/events",
+        json={"title": "Over", "start": "2026-09-01T10:00:00", "duration_minutes": 1441},
+        headers=headers,
+    )
+    assert resp_over.status_code == 400
