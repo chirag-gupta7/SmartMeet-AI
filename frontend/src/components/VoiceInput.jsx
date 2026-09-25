@@ -187,7 +187,7 @@ const VoiceInput = ({ onTranscript, onProcessing, isProcessing = false, response
 
       {(responseMessage || authUrl) && (
         <div role="status" aria-live="polite" className="rounded-2xl border border-primary-100 bg-primary-50/60 p-4">
-          {responseMessage && <p role="status" aria-live="polite" className="text-sm text-ink-900">{responseMessage}</p>}
+          {responseMessage && <p className="text-sm text-ink-900">{responseMessage}</p>}
           {authUrl && (
             <a
               href={authUrl}

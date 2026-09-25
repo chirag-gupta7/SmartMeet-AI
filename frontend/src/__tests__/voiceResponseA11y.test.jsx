@@ -44,6 +44,8 @@ describe('Voice command feedback accessibility and error recovery', () => {
   test('VoiceInput response message container has role="status" and aria-live="polite"', () => {
     // Unmock VoiceInput for unit test of VoiceInput itself
     const ActualVoiceInput = jest.requireActual('../components/VoiceInput').default;
+    const { voiceService } = require('../services/voiceService');
+    jest.spyOn(voiceService, 'isSupported').mockReturnValue(true);
 
     render(
       <ActualVoiceInput
@@ -54,7 +56,9 @@ describe('Voice command feedback accessibility and error recovery', () => {
       />
     );
 
-    const statusContainer = screen.getByRole('status');
+    const statusContainer = screen.getAllByRole('status').find((el) =>
+      el.textContent.includes('Meeting scheduled for 2 PM')
+    );
     expect(statusContainer).toBeInTheDocument();
     expect(statusContainer).toHaveAttribute('aria-live', 'polite');
     expect(statusContainer).toHaveTextContent('Meeting scheduled for 2 PM');

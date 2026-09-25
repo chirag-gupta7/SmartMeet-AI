@@ -13,3 +13,7 @@
 ## 2026-09-12 - Separate Transient Runtime Errors from Feature Support to Preserve Recovery Actions
 **Learning:** Disabling primary interactive buttons upon transient errors locks users out of retrying the action (since disabled buttons do not receive click events), preventing error recovery even when error-handling functions contain reset logic.
 **Action:** Only disable controls when a feature is permanently unsupported in the environment, and provide accessible explicit dismiss/retry controls alongside transient error alerts.
+
+## 2026-09-25 - Semantic List Landmarks and Decorative Icon Hiding for Card Collections
+**Learning:** Rendering meeting or event collections using unlabelled `div` wrappers prevents screen reader users from navigating by list landmarks or hearing total item counts. Furthermore, un-hidden decorative icons inside list items generate extra noise during screen reader speech.
+**Action:** Always wrap card lists in semantic `<ul aria-label="...">` elements with `<li>` items, and add `aria-hidden="true"` to purely decorative visual icons.
