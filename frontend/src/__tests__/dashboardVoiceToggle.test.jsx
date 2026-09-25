@@ -94,4 +94,23 @@ describe('Dashboard voice scheduler toggle ARIA attributes', () => {
 
     expect(screen.queryByText('Done')).not.toBeInTheDocument();
   });
+
+  test('renders scheduled meetings inside a semantic list with aria-label', async () => {
+    meetingService.getMeetings.mockResolvedValueOnce({
+      meetings: [
+        { id: 1, title: 'Team Sync', start_time: '2026-03-15T10:00:00Z', duration: 30 },
+        { id: 2, title: 'Design Review', start_time: '2026-03-15T14:00:00Z', duration: 45 },
+      ],
+    });
+
+    render(<Dashboard />);
+
+    const meetingList = await screen.findByRole('list', { name: 'Scheduled meetings' });
+    expect(meetingList).toBeInTheDocument();
+
+    const items = screen.getAllByRole('listitem');
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent('Team Sync');
+    expect(items[1]).toHaveTextContent('Design Review');
+  });
 });
