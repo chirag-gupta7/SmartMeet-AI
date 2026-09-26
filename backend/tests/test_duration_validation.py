@@ -16,6 +16,59 @@ def test_create_meeting_rejects_non_integer_duration(client, user_factory, auth_
     assert resp.status_code == 400
 
 
+def test_endpoints_reject_oversized_duration_and_notifications(
+    client, user_factory, auth_headers
+):
+    user = user_factory(email="dur-oversized@example.com")
+    headers = auth_headers(user.id)
+
+    # Oversized duration > 1440
+    resp1 = client.post(
+        "/api/meetings",
+        json={
+            "title": "Too long",
+            "start_time": "2026-09-01T10:00:00",
+            "duration": 1441,
+        },
+        headers=headers,
+    )
+    assert resp1.status_code == 400
+
+    resp2 = client.post(
+        "/api/calendar/sync",
+        json={
+            "title": "Sync long",
+            "start": "2026-09-01T10:00:00",
+            "duration_minutes": 10000,
+        },
+        headers=headers,
+    )
+    assert resp2.status_code == 400
+
+    resp3 = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Struct long",
+            "start": "2026-09-01T10:00:00",
+            "duration_minutes": 1500,
+        },
+        headers=headers,
+    )
+    assert resp3.status_code == 400
+
+    # Excessive notifications > 50 items
+    resp4 = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Many notifications",
+            "start": "2026-09-01T10:00:00",
+            "notifications": list(range(51)),
+        },
+        headers=headers,
+    )
+    assert resp4.status_code == 400
+
+
 def test_create_meeting_rejects_negative_duration(client, user_factory, auth_headers):
     user = user_factory(email="dur-b@example.com")
     headers = auth_headers(user.id)

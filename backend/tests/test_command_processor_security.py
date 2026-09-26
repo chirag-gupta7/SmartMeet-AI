@@ -186,3 +186,14 @@ def test_find_free_time_validation():
         res["error"]
         == "Date parameter exceeds maximum allowed length of 100 characters"
     )
+
+
+def test_detect_and_process_and_parse_datetime_non_string():
+    from app.services.datetime_parser import parse_natural_language_datetime
+
+    processor = VoiceCommandProcessor()
+    for bad_input in [None, 123, [], {}]:
+        assert processor.detect_and_process(bad_input) is None
+        res = parse_natural_language_datetime(bad_input)
+        assert res["success"] is False
+        assert res["error"] == "Invalid input type for datetime parsing"

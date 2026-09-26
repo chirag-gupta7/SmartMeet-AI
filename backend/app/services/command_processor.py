@@ -193,7 +193,7 @@ class VoiceCommandProcessor:
 
         Scheduling and weather are handled by the caller before this runs.
         """
-        if not text or not text.strip():
+        if not isinstance(text, str) or not text.strip():
             return None
 
         lowered = text.lower()

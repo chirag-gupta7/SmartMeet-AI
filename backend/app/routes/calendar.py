@@ -197,9 +197,19 @@ def sync_calendar():
         try:
             duration_minutes = int(raw_duration)
         except (TypeError, ValueError):
-            return jsonify({"success": False, "message": "duration_minutes must be an integer"}), 400
-        if duration_minutes <= 0:
-            return jsonify({"success": False, "message": "duration_minutes must be positive"}), 400
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "duration_minutes must be an integer",
+                }
+            ), 400
+        if duration_minutes <= 0 or duration_minutes > 1440:
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "duration_minutes must be between 1 and 1440",
+                }
+            ), 400
 
     try:
         start_time = to_naive_utc(parse_iso_datetime(start_raw))
@@ -283,6 +293,10 @@ def create_structured_event():
             return jsonify(
                 {"success": False, "message": "notifications must be a list"}
             ), 400
+        if len(raw_notifications) > 50:
+            return jsonify(
+                {"success": False, "message": "notifications must be 50 items or fewer"}
+            ), 400
         notifications = list(raw_notifications)
     else:
         notifications = []
@@ -350,9 +364,19 @@ def create_structured_event():
         try:
             duration_minutes = int(raw_duration)
         except (TypeError, ValueError):
-            return jsonify({"success": False, "message": "duration_minutes must be an integer"}), 400
-        if duration_minutes <= 0:
-            return jsonify({"success": False, "message": "duration_minutes must be positive"}), 400
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "duration_minutes must be an integer",
+                }
+            ), 400
+        if duration_minutes <= 0 or duration_minutes > 1440:
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "duration_minutes must be between 1 and 1440",
+                }
+            ), 400
 
     try:
         start_time = to_naive_utc(parse_iso_datetime(start_raw))
