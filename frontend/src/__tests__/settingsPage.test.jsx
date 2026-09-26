@@ -34,7 +34,7 @@ function renderSettings() {
 }
 
 describe('Settings calendar panel regression (M2/D3)', () => {
-  test('renders events using the start field without Invalid Date', async () => {
+  test('renders events using the start field inside a semantic ul list', async () => {
     calendarService.getEvents.mockResolvedValue({
       source: 'google',
       events: [
@@ -46,6 +46,13 @@ describe('Settings calendar panel regression (M2/D3)', () => {
 
     await waitFor(() => expect(screen.getByText('Standup')).toBeInTheDocument());
     expect(screen.queryByText(/Invalid Date/i)).not.toBeInTheDocument();
+
+    const list = screen.getByRole('list', { name: /synced calendar events/i });
+    expect(list).toBeInTheDocument();
+
+    const listItems = screen.getAllByRole('listitem');
+    expect(listItems).toHaveLength(1);
+    expect(listItems[0]).toHaveTextContent('Standup');
   });
 
   test('"Sync now" refreshes the event list instead of calling the dead sync endpoint', async () => {

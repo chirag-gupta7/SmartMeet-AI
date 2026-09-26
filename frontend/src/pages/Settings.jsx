@@ -94,16 +94,16 @@ const Settings = () => {
           </p>
         )}
 
-        <div className="mt-5 space-y-3">
-          {events.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-ink-900/10 bg-slate-50 px-5 py-8 text-center text-sm text-ink-900/50">
-              No events synced yet.
-            </div>
-          ) : (
-            events.map((event) => (
-              <div key={event.id} className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3.5">
+        {events.length === 0 ? (
+          <div className="mt-5 rounded-2xl border border-dashed border-ink-900/10 bg-slate-50 px-5 py-8 text-center text-sm text-ink-900/50">
+            No events synced yet.
+          </div>
+        ) : (
+          <ul aria-label="Synced calendar events" className="mt-5 space-y-3">
+            {events.map((event) => (
+              <li key={event.id} className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3.5">
                 <span className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-primary-50 text-primary-500">
-                  <CalendarClock className="h-4 w-4" />
+                  <CalendarClock className="h-4 w-4" aria-hidden="true" />
                 </span>
                 <div className="min-w-0">
                   <p className="truncate font-semibold text-ink-900">{event.title}</p>
@@ -111,10 +111,10 @@ const Settings = () => {
                     {fmt.format(new Date(event.start || event.start_time))}
                   </p>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );
