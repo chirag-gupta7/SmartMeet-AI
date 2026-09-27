@@ -16,6 +16,49 @@ def test_create_meeting_rejects_non_integer_duration(client, user_factory, auth_
     assert resp.status_code == 400
 
 
+def test_endpoints_reject_oversized_duration(client, user_factory, auth_headers):
+    user = user_factory(email="dur-f@example.com")
+    headers = auth_headers(user.id)
+
+    # create_meeting with duration > 1440
+    resp1 = client.post(
+        "/api/meetings",
+        json={"title": "Too long", "start_time": "2026-09-01T10:00:00", "duration": 1441},
+        headers=headers,
+    )
+    assert resp1.status_code == 400
+
+    # update_meeting with duration > 1440
+    created = client.post(
+        "/api/meetings",
+        json={"title": "Valid meeting", "start_time": "2026-09-01T10:00:00"},
+        headers=headers,
+    )
+    meeting_id = created.get_json()["meeting"]["id"]
+    resp2 = client.put(
+        f"/api/meetings/{meeting_id}",
+        json={"duration": 2000},
+        headers=headers,
+    )
+    assert resp2.status_code == 400
+
+    # calendar sync with duration_minutes > 1440
+    resp3 = client.post(
+        "/api/calendar/sync",
+        json={"title": "Sync too long", "start": "2026-09-01T10:00:00", "duration_minutes": 1500},
+        headers=headers,
+    )
+    assert resp3.status_code == 400
+
+    # create_structured_event with duration_minutes > 1440
+    resp4 = client.post(
+        "/api/calendar/events",
+        json={"title": "Struct too long", "start": "2026-09-01T10:00:00", "duration_minutes": 9999},
+        headers=headers,
+    )
+    assert resp4.status_code == 400
+
+
 def test_create_meeting_rejects_negative_duration(client, user_factory, auth_headers):
     user = user_factory(email="dur-b@example.com")
     headers = auth_headers(user.id)
