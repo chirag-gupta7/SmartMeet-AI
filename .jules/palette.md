@@ -13,3 +13,7 @@
 ## 2026-09-12 - Separate Transient Runtime Errors from Feature Support to Preserve Recovery Actions
 **Learning:** Disabling primary interactive buttons upon transient errors locks users out of retrying the action (since disabled buttons do not receive click events), preventing error recovery even when error-handling functions contain reset logic.
 **Action:** Only disable controls when a feature is permanently unsupported in the environment, and provide accessible explicit dismiss/retry controls alongside transient error alerts.
+
+## 2026-09-18 - Single ARIA Live Container and Elimination of Empty Status Regions
+**Learning:** Rendering empty `<p role="status">` elements or nesting `role="status"` tags inside parent live containers causes DOM testing conflicts and stutters/duplicate announcements in screen readers.
+**Action:** Conditionally render status elements only when content exists, and ensure a single outer container manages the `role="status"` live region.
