@@ -166,16 +166,19 @@ def parse_natural_language_datetime(text, timezone_name=None):
                 day_signal_found = True
                 base_date = now + relativedelta(months=1)
             else:
-                try:
-                    base_date = parser.parse(text, fuzzy=True)
-                    if base_date.tzinfo is None:
-                        base_date = base_date.replace(tzinfo=tzinfo_obj)
-                    if _DIGIT_PATTERN.search(text) or _MONTH_PATTERN.search(
-                        text
-                    ):
+                # BOLT OPTIMIZATION: Only execute expensive fuzzy parsing when digits or
+                # explicit month keywords are present in the text, avoiding dateutil exceptions
+                # and ~3x overhead on dateless voice commands.
+                if _DIGIT_PATTERN.search(text) or _MONTH_PATTERN.search(text):
+                    try:
+                        base_date = parser.parse(text, fuzzy=True)
+                        if base_date.tzinfo is None:
+                            base_date = base_date.replace(tzinfo=tzinfo_obj)
                         day_signal_found = True
-                except Exception as e:
-                    logger.warning(f"Failed to parse date with dateutil: {e}")
+                    except Exception as e:
+                        logger.warning(f"Failed to parse date with dateutil: {e}")
+                        base_date = now
+                else:
                     base_date = now
 
     # Time detection with pre-compiled patterns
