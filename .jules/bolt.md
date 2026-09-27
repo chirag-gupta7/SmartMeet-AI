@@ -49,3 +49,7 @@
 ## 2026-06-29 - Fast ISO Datetime Parsing in Google Calendar Normalization
 **Learning:** Normalizing arrays of external calendar events previously called `start_val.replace('Z', '+00:00')` on every event string, causing unnecessary string allocations. Reusing `parse_iso_datetime` takes advantage of Python 3.11+ direct fast `datetime.fromisoformat` without string allocations.
 **Action:** Use `parse_iso_datetime` consistently for ISO8601 string parsing across services and route handlers.
+
+## 2026-07-20 - Guarding Fuzzy Date Parsing on Dateless Natural Language Inputs
+**Learning:** Unconditionally invoking `dateutil.parser.parse(text, fuzzy=True)` on free-form transcripts or command text without digits or month keywords raises and catches unnecessary `ParserError` exceptions and logs warnings on dateless inputs.
+**Action:** Guard fallback calls to `dateutil.parser.parse(text, fuzzy=True)` with regex checks for digits or month names (`_DIGIT_PATTERN` or `_MONTH_PATTERN`) to bypass expensive fuzzy parsing and exception overhead.
