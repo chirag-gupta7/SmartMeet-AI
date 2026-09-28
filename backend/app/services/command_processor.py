@@ -8,7 +8,7 @@ import threading
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional
-from flask import current_app, Flask
+from flask import current_app, Flask, has_request_context
 from dateutil import parser
 import uuid
 
@@ -70,6 +70,26 @@ _SAFE_UNARY_OPS = {
 _WEATHER_EXTRACT_PATTERN = _WEATHER_LOCATION_PATTERN
 _TODAY_EVENT_PATTERN = _TODAY_CALENDAR_PATTERN
 _LOCATION_VALIDATION_PATTERN = re.compile(r"^[\w ,.-]+$")
+
+# BOLT OPTIMIZATION: Static module-level tuples for jokes and facts eliminate
+# runtime list allocations on every get_joke / get_random_fact call.
+_JOKES = (
+    "Why don't scientists trust atoms? Because they make up everything!",
+    "Why did the scarecrow win an award? He was outstanding in his field!",
+    "Why don't eggs tell jokes? They'd crack each other up!",
+    "What do you call a fake noodle? An impasta!",
+    "Why did the math book look so sad? Because it had too many problems!",
+    "What do you call a bear with no teeth? A gummy bear!",
+)
+
+_FACTS = (
+    "The Great Wall of China is not visible from space with the naked eye, contrary to popular belief.",
+    "Honey never spoils. Archaeologists have found pots of honey in ancient Egyptian tombs that are over 3,000 years old and still perfectly good to eat.",
+    "A day on Venus is longer than a year on Venus. It takes 243 Earth days to rotate once on its axis, but only 225 Earth days to go around the Sun.",
+    "The fingerprints of koalas are so similar to humans that they have on occasion been confused at crime scenes.",
+    "The Hawaiian alphabet has only 13 letters.",
+    "Octopuses have three hearts, nine brains, and blue blood.",
+)
 
 
 def _safe_eval(node: ast.expr) -> float:
@@ -270,15 +290,35 @@ class VoiceCommandProcessor:
 
     def _log_command_to_database(self, level: str, message: str, extra_data: Dict = None):
         """Log command events to database, ensuring application context."""
-        if not _flask_app_instance_cp:
-            logger.error("Flask app instance not set for command processor logging. Cannot log to DB.")
-            return
-            
         if not db or not Log:
             logger.warning("Database models not available - logging to console instead")
             logger.info(f"[{level}] {message}")
             return
-            
+
+        # BOLT OPTIMIZATION: Check has_request_context() first. When running inside
+        # an active Flask request, bypass app_context() creation and db.session.remove()
+        # to prevent tearing down the request's active database session mid-request.
+        if has_request_context():
+            try:
+                new_log = Log(
+                    user_id=str(self.user_id) if self.user_id else None,
+                    level=level,
+                    message=message,
+                    source='voice_command_processor',
+                    extra_data=extra_data or {}
+                )
+                db.session.add(new_log)
+                db.session.commit()
+            except Exception as e:
+                logger.error(f"Failed to log to database from command processor: {e}")
+                if db and db.session and db.session.is_active:
+                    db.session.rollback()
+            return
+
+        if not _flask_app_instance_cp:
+            logger.error("Flask app instance not set for command processor logging. Cannot log to DB.")
+            return
+
         with _flask_app_instance_cp.app_context():
             try:
                 new_log = Log(
@@ -644,6 +684,40 @@ class VoiceCommandProcessor:
                 'user_message': 'I need to know who you are to save a note.'
             }
             
+        # BOLT OPTIMIZATION: Check has_request_context() to use active request session
+        # without pushing redundant app_context or tearing down db.session mid-request.
+        if has_request_context():
+            try:
+                new_note = Note(
+                    user_id=self.user_id,
+                    content=note_str
+                )
+                db.session.add(new_note)
+                db.session.commit()
+
+                logger.info(f"Note saved successfully with ID {new_note.id}")
+                user_message = f"Note saved: {note_str[:50]}{'...' if len(note_str) > 50 else ''}"
+
+                return {
+                    'success': True,
+                    'data': {
+                        'note_id': new_note.id,
+                        'content': new_note.content,
+                        'created_at': new_note.created_at.isoformat(),
+                        'message': 'Note saved successfully.'
+                    },
+                    'user_message': user_message
+                }
+            except Exception as e:
+                logger.error(f"Failed to save note to database: {e}")
+                if db and db.session and db.session.is_active:
+                    db.session.rollback()
+                return {
+                    'success': False,
+                    'error': str(e),
+                    'user_message': "Sorry, I couldn't save that note. Please try again."
+                }
+
         if _flask_app_instance_cp and Note:
             with _flask_app_instance_cp.app_context():
                 try:
@@ -670,7 +744,7 @@ class VoiceCommandProcessor:
                 except Exception as e:
                     _flask_app_instance_cp.logger.error(f"Failed to save note to database from command processor: {e}")
                     try:
-                        if db.session.is_active:
+                        if db and db.session and db.session.is_active:
                             db.session.rollback()
                     except Exception as rollback_e:
                         _flask_app_instance_cp.logger.error(f"Error during rollback for note: {rollback_e}")
@@ -681,7 +755,8 @@ class VoiceCommandProcessor:
                     }
                 finally:
                     try:
-                        db.session.remove()
+                        if db and db.session:
+                            db.session.remove()
                     except Exception as cleanup_e:
                         _flask_app_instance_cp.logger.error(f"Error cleaning up DB session in note: {cleanup_e}")
         else:
@@ -831,16 +906,7 @@ class VoiceCommandProcessor:
         """
         Get a random interesting fact.
         """
-        facts = [
-            "The Great Wall of China is not visible from space with the naked eye, contrary to popular belief.",
-            "Honey never spoils. Archaeologists have found pots of honey in ancient Egyptian tombs that are over 3,000 years old and still perfectly good to eat.",
-            "A day on Venus is longer than a year on Venus. It takes 243 Earth days to rotate once on its axis, but only 225 Earth days to go around the Sun.",
-            "The fingerprints of koalas are so similar to humans that they have on occasion been confused at crime scenes.",
-            "The Hawaiian alphabet has only 13 letters.",
-            "Octopuses have three hearts, nine brains, and blue blood."
-        ]
-        
-        fact = random.choice(facts)
+        fact = random.choice(_FACTS)
         
         return {
             'success': True,
@@ -852,16 +918,7 @@ class VoiceCommandProcessor:
         """
         Get a joke.
         """
-        jokes = [
-            "Why don't scientists trust atoms? Because they make up everything!",
-            "Why did the scarecrow win an award? He was outstanding in his field!",
-            "Why don't eggs tell jokes? They'd crack each other up!",
-            "What do you call a fake noodle? An impasta!",
-            "Why did the math book look so sad? Because it had too many problems!",
-            "What do you call a bear with no teeth? A gummy bear!"
-        ]
-        
-        joke = random.choice(jokes)
+        joke = random.choice(_JOKES)
         
         return {
             'success': True,
