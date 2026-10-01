@@ -53,3 +53,7 @@
 ## 2026-09-17 - Composite Indexing for User Meeting Queries
 **Learning:** Queries filtering by `owner_id` and ordering or filtering by `start_time` (`WHERE owner_id = ? AND start_time >= ? ORDER BY start_time ASC`) were triggering `USE TEMP B-TREE FOR ORDER BY` in SQLite because single-column indexes on `owner_id` and `start_time` cannot serve both filtering and sorting simultaneously.
 **Action:** Always create a composite index on `(owner_id, start_time)` when queries frequently retrieve entity collections for a specific user ordered by date.
+
+## 2026-09-19 - Module-level Constants for Hot-Path Datetime Parsing & Imports
+**Learning:** Defining list structures inside hot-path functions (e.g. `day_keywords` in `parse_natural_language_datetime`) creates redundant object allocations on every function execution. Additionally, calling `.lower()` on already-lowercased strings inside search loops adds unnecessary string overhead.
+**Action:** Extract static collection literals to module-level tuple constants and reuse pre-lowercased variables in string searches.
