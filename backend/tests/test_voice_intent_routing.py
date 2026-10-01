@@ -149,3 +149,14 @@ def test_oversized_transcript_returns_400(
     resp = _post_transcript(client, headers, oversized_text)
     assert resp.status_code == 400
     assert "exceeds maximum allowed length" in resp.get_json()["message"]
+
+
+def test_generate_action_reply_input_validation(app):
+    from app.services.llm_service import generate_action_reply
+
+    with app.app_context():
+        # Non-string and empty/whitespace inputs fail gracefully without API call
+        for invalid in [None, 12345, [], {}, "", "   ", "\t\n"]:
+            action, reply = generate_action_reply(invalid)
+            assert action == "general_response"
+            assert "couldn't process" in reply

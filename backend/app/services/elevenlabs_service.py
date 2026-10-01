@@ -50,8 +50,13 @@ def synthesize_speech(text: str) -> Optional[str]:
     Convert text to base64-encoded audio using ElevenLabs.
     Uses memoization to cache results of frequent requests.
     """
-    if not text:
+    # Validate string type, non-whitespace content, and cap max length at 5000 chars to prevent DoS/cost bloat
+    if not isinstance(text, str) or not text.strip():
         return None
+
+    text = text.strip()
+    if len(text) > 5000:
+        text = text[:5000]
 
     api_key = current_app.config.get("ELEVENLABS_API_KEY")
     if not api_key:
