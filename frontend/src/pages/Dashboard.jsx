@@ -186,7 +186,7 @@ const Dashboard = () => {
             )}
           </div>
         ) : (
-          sorted.map((m, i) => <MeetingCard key={m.id} meeting={m} style={{ animationDelay: `${i * 60}ms` }} />)
+          sorted.map((m, i) => <MeetingCard key={m.id} meeting={m} index={i} />)
         )}
       </div>
     </div>
@@ -213,8 +213,9 @@ const StatCard = React.memo(({ icon: Icon, label, value, tint }) => {
   );
 });
 
-// BOLT OPTIMIZATION: Memoize child cards with React.memo to prevent re-rendering when Dashboard state changes.
-const MeetingCard = React.memo(({ meeting, style }) => {
+// BOLT OPTIMIZATION: Memoize child cards with React.memo using primitive index prop rather than
+// inline style object, preventing shallow prop comparison failures on parent component re-renders.
+const MeetingCard = React.memo(({ meeting, index = 0 }) => {
   const d = new Date(meeting.start_time);
   const day = d.getDate();
   const month = MONTHS[d.getMonth()];
@@ -222,7 +223,7 @@ const MeetingCard = React.memo(({ meeting, style }) => {
   return (
     <div
       className="card group flex items-center gap-4 p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-glow animate-fade-in-up"
-      style={style}
+      style={{ animationDelay: `${index * 60}ms` }}
     >
       <div className="flex h-16 w-16 flex-none flex-col items-center justify-center rounded-2xl bg-sidebar-gradient text-white">
         <span className="text-lg font-extrabold leading-none">{day}</span>
