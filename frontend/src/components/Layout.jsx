@@ -48,7 +48,7 @@ const Layout = () => {
           <Logo />
         </div>
 
-        <nav className="mt-2 flex-1 space-y-1 px-3">
+        <nav aria-label="Main navigation" className="mt-2 flex-1 space-y-1 px-3">
           <SideLink to="/" active={isActive('/')} icon={LayoutGrid} label="Dashboard" />
           <SideLink to="/settings" active={isActive('/settings')} icon={SettingsIcon} label="Settings" />
         </nav>
@@ -68,7 +68,7 @@ const Layout = () => {
             onClick={handleLogout}
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 py-2 text-sm font-medium text-white/90 transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-4 w-4" aria-hidden="true" />
             Log out
           </button>
         </div>
@@ -92,7 +92,7 @@ const Layout = () => {
               isActive('/') ? 'text-primary-600' : 'text-ink-900/55'
             }`}
           >
-            <CalendarDays className="h-6 w-6" />
+            <CalendarDays className="h-6 w-6" aria-hidden="true" />
             <span>Meetings</span>
           </Link>
           <Link
@@ -103,7 +103,7 @@ const Layout = () => {
               isActive('/settings') ? 'text-primary-600' : 'text-ink-900/55'
             }`}
           >
-            <SettingsIcon className="h-6 w-6" />
+            <SettingsIcon className="h-6 w-6" aria-hidden="true" />
             <span>Settings</span>
           </Link>
           <button
@@ -112,7 +112,7 @@ const Layout = () => {
             aria-label="Log out"
             className="flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-xs font-medium text-ink-900/55 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
           >
-            <LogOut className="h-6 w-6" />
+            <LogOut className="h-6 w-6" aria-hidden="true" />
             <span>Logout</span>
           </button>
         </div>
@@ -131,7 +131,7 @@ const SideLink = ({ to, active, icon: Icon, label }) => (
         : 'text-white/70 hover:bg-white/10 hover:text-white'
     }`}
   >
-    <Icon className={`h-5 w-5 ${active ? 'text-primary-300' : 'text-white/60 group-hover:text-white'}`} />
+    <Icon className={`h-5 w-5 ${active ? 'text-primary-300' : 'text-white/60 group-hover:text-white'}`} aria-hidden="true" />
     {label}
   </Link>
 );

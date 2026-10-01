@@ -23,8 +23,8 @@ describe('Layout component accessibility', () => {
 
     const meetingsLink = within(mobileNav).getByRole('link', { name: 'Meetings dashboard' });
     expect(meetingsLink).toBeInTheDocument();
-    expect(meetingsLink.className).toContain('focus-visible:ring-2');
     expect(meetingsLink).toHaveAttribute('aria-current', 'page');
+    expect(meetingsLink.className).toContain('focus-visible:ring-2');
 
     const settingsLink = within(mobileNav).getByRole('link', { name: 'Settings' });
     expect(settingsLink).toBeInTheDocument();
@@ -33,6 +33,23 @@ describe('Layout component accessibility', () => {
     const logoutBtn = within(mobileNav).getByRole('button', { name: 'Log out' });
     expect(logoutBtn).toBeInTheDocument();
     expect(logoutBtn.className).toContain('focus-visible:ring-2');
+  });
+
+test('renders main navigation landmark with aria-current on active link', () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Layout />
+      </MemoryRouter>
+    );
+
+    const mainNav = screen.getByRole('navigation', { name: 'Main navigation' });
+    expect(mainNav).toBeInTheDocument();
+
+    const dashboardLink = within(mainNav).getByRole('link', { name: 'Dashboard' });
+    expect(dashboardLink).toHaveAttribute('aria-current', 'page');
+
+    const settingsLink = within(mainNav).getByRole('link', { name: 'Settings' });
+    expect(settingsLink).not.toHaveAttribute('aria-current');
   });
 
   test('renders desktop sidebar and mobile nav with aria-current="page" on active route link', () => {
