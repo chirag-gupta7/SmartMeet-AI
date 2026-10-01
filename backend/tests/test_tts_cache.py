@@ -85,3 +85,31 @@ def test_do_not_cache_failures():
             assert res2 is not None
             # Should have called convert again because the failure wasn't cached
             assert mock_client.text_to_speech.convert.call_count == 2
+
+
+def test_synthesize_speech_input_validation():
+    mock_app = MagicMock()
+    mock_app.config = {
+        "ELEVENLABS_API_KEY": "test_key",
+        "ELEVENLABS_VOICE_ID": "test_voice"
+    }
+
+    with patch("app.services.elevenlabs_service.current_app", mock_app):
+        with patch("app.services.elevenlabs_service.ElevenLabs") as MockElevenLabs:
+            mock_client = MockElevenLabs.return_value
+            mock_client.text_to_speech.convert.return_value = [b"audio_data"]
+
+            # Non-string and empty/whitespace inputs return None without calling API
+            invalid_inputs = [None, 12345, [], {}, "", "   ", "\n\t"]
+            for inp in invalid_inputs:
+                assert synthesize_speech(inp) is None
+
+            assert mock_client.text_to_speech.convert.call_count == 0
+
+            # Oversized text (>5000 chars) is truncated to 5000 chars
+            long_text = "A" * 6000
+            res = synthesize_speech(long_text)
+            assert res is not None
+            assert mock_client.text_to_speech.convert.call_count == 1
+            args, kwargs = mock_client.text_to_speech.convert.call_args
+            assert len(kwargs["text"]) == 5000
