@@ -99,4 +99,33 @@ describe('Settings calendar panel regression (M2/D3)', () => {
     const button = await screen.findByRole('button', { name: /sync calendar/i });
     expect(button).toHaveAttribute('aria-busy', 'false');
   });
+
+  test('allows filtering events by title and clearing search filter', async () => {
+    calendarService.getEvents.mockResolvedValue({
+      source: 'google',
+      events: [
+        { id: 'e1', title: 'Design Review', start: '2026-09-01T10:00:00Z' },
+        { id: 'e2', title: 'Sprint Planning', start: '2026-09-02T10:00:00Z' },
+      ],
+    });
+
+    renderSettings();
+
+    await waitFor(() => expect(screen.getByText('Design Review')).toBeInTheDocument());
+    expect(screen.getByText('Sprint Planning')).toBeInTheDocument();
+
+    const searchInput = screen.getByRole('textbox', { name: 'Filter synced events by title' });
+    fireEvent.change(searchInput, { target: { value: 'Design' } });
+
+    expect(screen.getByText('Design Review')).toBeInTheDocument();
+    expect(screen.queryByText('Sprint Planning')).not.toBeInTheDocument();
+
+    const clearButton = screen.getByRole('button', { name: 'Clear event search' });
+    expect(clearButton).toBeInTheDocument();
+
+    fireEvent.click(clearButton);
+
+    expect(screen.getByText('Design Review')).toBeInTheDocument();
+    expect(screen.getByText('Sprint Planning')).toBeInTheDocument();
+  });
 });
