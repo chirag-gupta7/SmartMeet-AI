@@ -10,12 +10,12 @@ jest.mock('../context/AuthContext', () => ({
   }),
 }));
 
+import Login from '../pages/Login';
+import Register from '../pages/Register';
+
 jest.mock('@react-oauth/google', () => ({
   useGoogleLogin: () => jest.fn(),
 }));
-
-import Login from '../pages/Login';
-import Register from '../pages/Register';
 
 describe('Password visibility toggle accessibility', () => {
   test('Login password toggle button updates aria-pressed and aria-label on click', () => {
