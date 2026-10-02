@@ -76,6 +76,13 @@ def _memoized_generate_action_reply(user_text: str, api_key: str) -> str:
 
 
 def generate_action_reply(user_text: str) -> Tuple[str, str]:
+    if not isinstance(user_text, str) or not user_text.strip():
+        return "general_response", "Please provide valid text."
+
+    user_text = user_text.strip()
+    if len(user_text) > 5000:
+        user_text = user_text[:5000]
+
     api_key = current_app.config.get("HUGGINGFACE_API_KEY")
     if not api_key:
         logger.info("HUGGINGFACE_API_KEY not configured; skipping LLM call")
