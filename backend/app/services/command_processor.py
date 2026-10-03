@@ -71,6 +71,26 @@ _WEATHER_EXTRACT_PATTERN = _WEATHER_LOCATION_PATTERN
 _TODAY_EVENT_PATTERN = _TODAY_CALENDAR_PATTERN
 _LOCATION_VALIDATION_PATTERN = re.compile(r"^[\w ,.-]+$")
 
+# BOLT OPTIMIZATION: Module-scoped tuples for jokes and facts datasets prevent
+# repeated list allocations during get_joke and get_random_fact calls.
+_FACTS = (
+    "The Great Wall of China is not visible from space with the naked eye, contrary to popular belief.",
+    "Honey never spoils. Archaeologists have found pots of honey in ancient Egyptian tombs that are over 3,000 years old and still perfectly good to eat.",
+    "A day on Venus is longer than a year on Venus. It takes 243 Earth days to rotate once on its axis, but only 225 Earth days to go around the Sun.",
+    "The fingerprints of koalas are so similar to humans that they have on occasion been confused at crime scenes.",
+    "The Hawaiian alphabet has only 13 letters.",
+    "Octopuses have three hearts, nine brains, and blue blood.",
+)
+
+_JOKES = (
+    "Why don't scientists trust atoms? Because they make up everything!",
+    "Why did the scarecrow win an award? He was outstanding in his field!",
+    "Why don't eggs tell jokes? They'd crack each other up!",
+    "What do you call a fake noodle? An impasta!",
+    "Why did the math book look so sad? Because it had too many problems!",
+    "What do you call a bear with no teeth? A gummy bear!",
+)
+
 
 def _safe_eval(node: ast.expr) -> float:
     """Evaluate an arithmetic AST composed only of numbers and operators."""
@@ -831,16 +851,7 @@ class VoiceCommandProcessor:
         """
         Get a random interesting fact.
         """
-        facts = [
-            "The Great Wall of China is not visible from space with the naked eye, contrary to popular belief.",
-            "Honey never spoils. Archaeologists have found pots of honey in ancient Egyptian tombs that are over 3,000 years old and still perfectly good to eat.",
-            "A day on Venus is longer than a year on Venus. It takes 243 Earth days to rotate once on its axis, but only 225 Earth days to go around the Sun.",
-            "The fingerprints of koalas are so similar to humans that they have on occasion been confused at crime scenes.",
-            "The Hawaiian alphabet has only 13 letters.",
-            "Octopuses have three hearts, nine brains, and blue blood."
-        ]
-        
-        fact = random.choice(facts)
+        fact = random.choice(_FACTS)
         
         return {
             'success': True,
@@ -852,16 +863,7 @@ class VoiceCommandProcessor:
         """
         Get a joke.
         """
-        jokes = [
-            "Why don't scientists trust atoms? Because they make up everything!",
-            "Why did the scarecrow win an award? He was outstanding in his field!",
-            "Why don't eggs tell jokes? They'd crack each other up!",
-            "What do you call a fake noodle? An impasta!",
-            "Why did the math book look so sad? Because it had too many problems!",
-            "What do you call a bear with no teeth? A gummy bear!"
-        ]
-        
-        joke = random.choice(jokes)
+        joke = random.choice(_JOKES)
         
         return {
             'success': True,
