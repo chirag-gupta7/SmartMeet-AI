@@ -4,7 +4,7 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import GoogleButton from '../components/GoogleButton';
 import Logo from '../components/Logo';
-import { Mic, Sparkles, CalendarCheck, ShieldCheck } from 'lucide-react';
+import { Mic, Sparkles, CalendarCheck, ShieldCheck, Loader2 } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -134,8 +134,14 @@ const Login = () => {
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary w-full">
-              {loading ? 'Signing in…' : 'Sign in'}
+            <button
+              type="submit"
+              disabled={loading}
+              aria-busy={loading}
+              className="btn-primary w-full flex items-center justify-center gap-2"
+            >
+              {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+              <span>{loading ? 'Signing in…' : 'Sign in'}</span>
             </button>
           </form>
 

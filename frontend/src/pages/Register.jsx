@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Logo from '../components/Logo';
-import { Mic, Sparkles, CalendarCheck, ShieldCheck } from 'lucide-react';
+import { Mic, Sparkles, CalendarCheck, ShieldCheck, Loader2 } from 'lucide-react';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -144,8 +144,14 @@ const Register = () => {
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary w-full">
-              {loading ? 'Creating account…' : 'Create account'}
+            <button
+              type="submit"
+              disabled={loading}
+              aria-busy={loading}
+              className="btn-primary w-full flex items-center justify-center gap-2"
+            >
+              {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+              <span>{loading ? 'Creating account…' : 'Create account'}</span>
             </button>
           </form>
 
