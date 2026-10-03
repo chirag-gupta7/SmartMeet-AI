@@ -119,8 +119,14 @@ def google_login():
     payload = request.get_json() or {}
     code = payload.get("code")
 
-    if not code:
+    if not isinstance(code, str) or not code.strip():
         return jsonify({"message": "Authorization code is required"}), 400
+
+    code = code.strip()
+    if len(code) > 2048:
+        return jsonify(
+            {"message": "Authorization code exceeds maximum length"}
+        ), 400
 
     try:
         creds_file = os.path.join(os.getcwd(), "credentials.json")

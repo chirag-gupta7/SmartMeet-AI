@@ -3,6 +3,21 @@ import logging
 from unittest.mock import patch
 
 
+def test_google_login_non_string_or_oversized_code_returns_400(client):
+    """Non-string or oversized code in google login must be rejected with 400."""
+    resp1 = client.post("/api/auth/google", json={"code": 12345})
+    assert resp1.status_code == 400
+    assert "required" in resp1.get_json()["message"]
+
+    resp2 = client.post("/api/auth/google", json={"code": "   "})
+    assert resp2.status_code == 400
+    assert "required" in resp2.get_json()["message"]
+
+    resp3 = client.post("/api/auth/google", json={"code": "C" * 2049})
+    assert resp3.status_code == 400
+    assert "exceeds maximum length" in resp3.get_json()["message"]
+
+
 def test_google_login_failure_returns_generic_message_and_logs_detail(
     client, caplog
 ):
