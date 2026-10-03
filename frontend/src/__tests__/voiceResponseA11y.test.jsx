@@ -13,32 +13,30 @@ jest.mock('../services/api', () => ({
   },
 }));
 
-jest.mock('../components/VoiceInput', () => {
-  const React = require('react');
-  return function DummyVoiceInput({ onTranscript, responseMessage }) {
-    return (
-      <div data-testid="voice-input-mock">
-        {responseMessage && (
-          <div role="status" aria-live="polite" data-testid="response-msg">
-            {responseMessage}
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={() => onTranscript('Schedule sync')}
-        >
-          Send Voice Transcript
-        </button>
+jest.mock('../components/VoiceInput', () => jest.fn());
+
+const DummyVoiceInput = ({ onTranscript, responseMessage }) => (
+  <div data-testid="voice-input-mock">
+    {responseMessage && (
+      <div role="status" aria-live="polite" data-testid="response-msg">
+        {responseMessage}
       </div>
-    );
-  };
-});
+    )}
+    <button
+      type="button"
+      onClick={() => onTranscript('Schedule sync')}
+    >
+      Send Voice Transcript
+    </button>
+  </div>
+);
 
 import { meetingService } from '../services/api';
 
 describe('Voice command feedback accessibility and error recovery', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    VoiceInput.mockImplementation(DummyVoiceInput);
   });
 
   test('VoiceInput response message container has role="status" and aria-live="polite"', () => {
@@ -54,7 +52,8 @@ describe('Voice command feedback accessibility and error recovery', () => {
       />
     );
 
-    const statusContainer = screen.getByRole('status');
+    const msgElement = screen.getByText('Meeting scheduled for 2 PM');
+    const statusContainer = msgElement.closest('[role="status"]');
     expect(statusContainer).toBeInTheDocument();
     expect(statusContainer).toHaveAttribute('aria-live', 'polite');
     expect(statusContainer).toHaveTextContent('Meeting scheduled for 2 PM');
