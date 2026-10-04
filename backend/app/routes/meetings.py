@@ -57,9 +57,9 @@ def create_meeting():
         return jsonify(
             {"message": "duration must be an integer number of minutes"}
         ), 400
-    if duration <= 0:
+    if duration <= 0 or duration > 1440:
         return jsonify(
-            {"message": "duration must be a positive number of minutes"}
+            {"message": "duration must be between 1 and 1440 minutes"}
         ), 400
 
     try:
@@ -130,9 +130,9 @@ def update_meeting(meeting_id: str):
             return jsonify(
                 {"message": "duration must be an integer number of minutes"}
             ), 400
-        if duration <= 0:
+        if duration <= 0 or duration > 1440:
             return jsonify(
-                {"message": "duration must be a positive number of minutes"}
+                {"message": "duration must be between 1 and 1440 minutes"}
             ), 400
         meeting.duration_minutes = duration
     if "start_time" in payload:
