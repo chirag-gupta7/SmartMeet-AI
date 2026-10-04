@@ -17,3 +17,7 @@
 ## 2026-09-22 - Avoid Nested ARIA Live Regions and Duplicate Status Roles
 **Learning:** Placing `role="status"` and `aria-live="polite"` on inner child elements inside a container that already has `role="status"` causes duplicate or competing announcements for screen reader users and breaks ARIA testing queries.
 **Action:** Define `role="status"` and `aria-live="polite"` on the outermost status container element only, and omit nested status roles on descendant elements.
+
+## 2026-10-04 - Semantic List Navigation and Decorative Icon Hiding
+**Learning:** Container `div` elements rendering list items (such as meetings or synced calendar events) prevent screen reader users from using list navigation shortcuts and learning the total item count. In addition, unflagged decorative SVG icons generate distracting audio output.
+**Action:** Always wrap repeating list items in semantic `<ul aria-label="...">` containers with `<li>` children, and explicitly mark decorative icons with `aria-hidden="true"`.
