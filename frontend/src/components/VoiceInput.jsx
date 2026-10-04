@@ -188,8 +188,8 @@ const VoiceInput = ({ onTranscript, onProcessing, isProcessing = false, response
       )}
 
       {(responseMessage || authUrl) && (
-        <div role="status" aria-live="polite" className="rounded-2xl border border-primary-100 bg-primary-50/60 p-4">
-          {responseMessage && <p className="text-sm text-ink-900">{responseMessage}</p>}
+<div role="status" aria-live="polite" className="rounded-2xl border border-primary-100 bg-primary-50/60 p-4">
+            {responseMessage && <p className="text-sm text-ink-900">{responseMessage}</p>}
           {authUrl && (
             <a
               href={authUrl}
@@ -231,4 +231,5 @@ const VoiceInput = ({ onTranscript, onProcessing, isProcessing = false, response
   );
 };
 
-export default VoiceInput;
+// BOLT OPTIMIZATION: Memoize VoiceInput with React.memo to prevent unnecessary re-renders when parent state updates.
+export default React.memo(VoiceInput);
