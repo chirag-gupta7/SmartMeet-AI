@@ -28,6 +28,14 @@ def test_tomorrow_at_3pm_parses_successfully():
     assert result["start_datetime"].date() == expected_day.date()
 
 
+def test_capitalized_day_keywords_parse_case_insensitively():
+    result = parse_natural_language_datetime("Team meeting Next Friday", UTC)
+
+    assert result["success"] is True
+    assert result["is_all_day"] is True
+    assert "start_date" in result
+
+
 def test_day_after_tomorrow_is_two_days_out():
     """Regression: 'day after tomorrow' used to match the 'tomorrow' branch
     and land one day early."""
