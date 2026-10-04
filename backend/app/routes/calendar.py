@@ -283,6 +283,13 @@ def create_structured_event():
             return jsonify(
                 {"success": False, "message": "notifications must be a list"}
             ), 400
+        if len(raw_notifications) > 50:
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "notifications must contain 50 or fewer items",
+                }
+            ), 400
         notifications = list(raw_notifications)
     else:
         notifications = []
