@@ -126,6 +126,7 @@ const VoiceInput = ({ onTranscript, onProcessing, isProcessing = false, response
 
   const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
   const shortcutHint = isMac ? 'Cmd + Space' : 'Ctrl + Space';
+  const isErrorResponse = Boolean(responseMessage) && /failed|error|please try again/i.test(responseMessage);
 
   const stateClasses = isProcessing
     ? 'bg-primary-500 hover:bg-primary-600'
@@ -187,9 +188,21 @@ const VoiceInput = ({ onTranscript, onProcessing, isProcessing = false, response
         </div>
       )}
 
-      {(responseMessage || authUrl) && (
-<div role="status" aria-live="polite" className="rounded-2xl border border-primary-100 bg-primary-50/60 p-4">
-          {responseMessage && <p className="text-sm text-ink-900">{responseMessage}</p>}
+{(responseMessage || authUrl) && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`rounded-2xl border p-4 ${
+            isErrorResponse
+              ? 'border-red-200 bg-red-50/60'
+              : 'border-primary-100 bg-primary-50/60'
+          }`}
+        >
+          {responseMessage && (
+            <p className={`text-sm ${isErrorResponse ? 'text-red-600 font-medium' : 'text-ink-900'}`}>
+              {responseMessage}
+            </p>
+          )}
           {authUrl && (
             <a
               href={authUrl}
