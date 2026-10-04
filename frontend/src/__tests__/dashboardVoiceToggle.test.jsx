@@ -37,10 +37,18 @@ describe('Dashboard voice scheduler toggle ARIA attributes', () => {
     meetingService.processVoiceCommand.mockResolvedValue({ success: true, message: 'Done' });
   });
 
+  test('renders loading indicator with role="status" and aria-live="polite" during initial fetch', async () => {
+    render(<Dashboard />);
+    const statusMsg = screen.getByRole('status');
+    expect(statusMsg).toHaveAttribute('aria-live', 'polite');
+    expect(statusMsg).toHaveTextContent(/loading meetings/i);
+    await screen.findByRole('button', { name: /schedule a meeting/i });
+  });
+
   test('toggle button updates aria-expanded and controls voice-scheduler-panel', async () => {
     render(<Dashboard />);
 
-    const toggleBtn = screen.getByRole('button', { name: /schedule a meeting/i });
+    const toggleBtn = await screen.findByRole('button', { name: /schedule a meeting/i });
     expect(toggleBtn).toHaveAttribute('aria-expanded', 'false');
     expect(toggleBtn).toHaveAttribute('aria-controls', 'voice-scheduler-panel');
 
@@ -63,7 +71,7 @@ describe('Dashboard voice scheduler toggle ARIA attributes', () => {
   test('empty state button has aria-expanded and aria-controls attributes', async () => {
     render(<Dashboard />);
 
-    const emptyStateBtn = screen.getByRole('button', { name: /schedule your first meeting/i });
+    const emptyStateBtn = await screen.findByRole('button', { name: /schedule your first meeting/i });
     expect(emptyStateBtn).toHaveAttribute('aria-expanded', 'false');
     expect(emptyStateBtn).toHaveAttribute('aria-controls', 'voice-scheduler-panel');
 
@@ -77,7 +85,7 @@ describe('Dashboard voice scheduler toggle ARIA attributes', () => {
     render(<Dashboard />);
 
     // Open voice scheduler
-    fireEvent.click(screen.getByRole('button', { name: /schedule a meeting/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /schedule a meeting/i }));
 
     // Click mock voice input trigger to fire transcript
     fireEvent.click(screen.getByTestId('simulate-transcript-btn'));
