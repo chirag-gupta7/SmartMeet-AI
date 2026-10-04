@@ -54,7 +54,7 @@ describe('Voice command feedback accessibility and error recovery', () => {
       />
     );
 
-    const statusContainer = screen.getByRole('status');
+    const statusContainer = screen.getByText('Meeting scheduled for 2 PM').closest('[role="status"]');
     expect(statusContainer).toBeInTheDocument();
     expect(statusContainer).toHaveAttribute('aria-live', 'polite');
     expect(statusContainer).toHaveTextContent('Meeting scheduled for 2 PM');
