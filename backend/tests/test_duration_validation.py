@@ -16,6 +16,37 @@ def test_create_meeting_rejects_non_integer_duration(client, user_factory, auth_
     assert resp.status_code == 400
 
 
+def test_create_meeting_rejects_oversized_duration(client, user_factory, auth_headers):
+    user = user_factory(email="dur-f@example.com")
+    headers = auth_headers(user.id)
+
+    resp = client.post(
+        "/api/meetings",
+        json={"title": "Huge duration", "start_time": "2026-09-01T10:00:00", "duration": 1441},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+    assert "between 1 and 1440" in resp.get_json()["message"]
+
+
+def test_update_meeting_rejects_oversized_duration(client, user_factory, auth_headers):
+    user = user_factory(email="dur-g@example.com")
+    headers = auth_headers(user.id)
+
+    created = client.post(
+        "/api/meetings",
+        json={"title": "Update duration target", "start_time": "2026-09-01T10:00:00"},
+        headers=headers,
+    )
+    meeting_id = created.get_json()["meeting"]["id"]
+
+    resp = client.put(
+        f"/api/meetings/{meeting_id}", json={"duration": 999999}, headers=headers
+    )
+    assert resp.status_code == 400
+    assert "between 1 and 1440" in resp.get_json()["message"]
+
+
 def test_create_meeting_rejects_negative_duration(client, user_factory, auth_headers):
     user = user_factory(email="dur-b@example.com")
     headers = auth_headers(user.id)
