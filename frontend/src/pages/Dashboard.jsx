@@ -196,7 +196,13 @@ const Dashboard = () => {
             )}
           </div>
         ) : (
-          sorted.map((m, i) => <MeetingCard key={m.id} meeting={m} style={{ animationDelay: `${i * 60}ms` }} />)
+          <ul aria-label="Scheduled meetings" className="space-y-3">
+            {sorted.map((m, i) => (
+              <li key={m.id}>
+                <MeetingCard meeting={m} style={{ animationDelay: `${i * 60}ms` }} />
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>
@@ -242,7 +248,7 @@ const MeetingCard = React.memo(({ meeting, style }) => {
       <div className="min-w-0 flex-1">
         <h3 className="truncate text-base font-semibold text-ink-900">{meeting.title}</h3>
         <p className="mt-1 flex items-center gap-1.5 text-sm text-ink-900/55">
-          <Clock className="h-4 w-4" />
+          <Clock className="h-4 w-4" aria-hidden="true" />
           {fmt.format(d)} – {fmt.format(endTime)}
         </p>
         {meeting.description && (
@@ -252,7 +258,7 @@ const MeetingCard = React.memo(({ meeting, style }) => {
 
       <span className="pill bg-primary-50 text-primary-700">{meeting.duration || 30} min</span>
 
-      <ArrowRight className="hidden h-5 w-5 flex-none text-ink-900/25 transition group-hover:translate-x-1 group-hover:text-primary-500 sm:block" />
+      <ArrowRight className="hidden h-5 w-5 flex-none text-ink-900/25 transition group-hover:translate-x-1 group-hover:text-primary-500 sm:block" aria-hidden="true" />
     </div>
   );
 });
