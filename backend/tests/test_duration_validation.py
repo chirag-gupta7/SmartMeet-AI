@@ -29,6 +29,19 @@ def test_create_meeting_rejects_negative_duration(client, user_factory, auth_hea
     assert Meeting.query.count() == 0
 
 
+def test_create_meeting_rejects_excessive_duration(client, user_factory, auth_headers):
+    user = user_factory(email="dur-ex@example.com")
+    headers = auth_headers(user.id)
+
+    resp = client.post(
+        "/api/meetings",
+        json={"title": "Huge duration", "start_time": "2026-09-01T10:00:00", "duration": 100000000},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+    assert Meeting.query.count() == 0
+
+
 def test_update_meeting_rejects_bad_duration(client, user_factory, auth_headers):
     user = user_factory(email="dur-c@example.com")
     headers = auth_headers(user.id)
