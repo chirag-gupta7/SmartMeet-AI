@@ -17,3 +17,11 @@
 ## 2026-09-22 - Avoid Nested ARIA Live Regions and Duplicate Status Roles
 **Learning:** Placing `role="status"` and `aria-live="polite"` on inner child elements inside a container that already has `role="status"` causes duplicate or competing announcements for screen reader users and breaks ARIA testing queries.
 **Action:** Define `role="status"` and `aria-live="polite"` on the outermost status container element only, and omit nested status roles on descendant elements.
+
+## 2026-09-25 - Semantic List Landmarks and Decorative Icon Hiding for Card Collections
+**Learning:** Placing `role="status"` and `aria-live="polite"` on inner child elements inside a container that already has `role="status"` causes duplicate or competing announcements for screen reader users and breaks ARIA testing queries.
+**Action:** Define `role="status"` and `aria-live="polite"` on the outermost status container element only, and omit nested status roles on descendant elements.
+=======
+## 2026-09-25 - Semantic List Landmarks and Decorative Icon Hiding for Card Collections
+**Learning:** Rendering meeting or event collections using unlabelled `div` wrappers prevents screen reader users from navigating by list landmarks or hearing total item counts. Furthermore, un-hidden decorative icons inside list items generate extra noise during screen reader speech.
+**Action:** Always wrap card lists in semantic `<ul aria-label="...">` elements with `<li>` items, and add `aria-hidden="true"` to purely decorative visual icons.

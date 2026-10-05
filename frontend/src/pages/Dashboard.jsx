@@ -166,39 +166,39 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Meeting list */}
-      <div className="space-y-3">
-        {loading ? (
-          <div role="status" aria-live="polite" className="card flex items-center justify-center gap-2 px-6 py-10 text-sm font-medium text-ink-900/50">
-            <Clock className="h-5 w-5 animate-spin text-primary-500" />
-            <span>Loading meetings…</span>
+{/* Meeting list */}
+      {loading ? (
+        <div role="status" aria-live="polite" className="card flex items-center justify-center gap-2 px-6 py-10 text-sm font-medium text-ink-900/50">
+          <Clock className="h-5 w-5 animate-spin text-primary-500" />
+          <span>Loading meetings…</span>
+        </div>
+      ) : sorted.length === 0 ? (
+        <div className="card flex flex-col items-center px-6 py-14 text-center animate-fade-in">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-50 text-primary-500">
+            <CalendarDays className="h-8 w-8" />
           </div>
-        ) : sorted.length === 0 ? (
-          <div className="card flex flex-col items-center px-6 py-14 text-center animate-fade-in">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-50 text-primary-500">
-              <CalendarDays className="h-8 w-8" />
-            </div>
-            <h3 className="mt-5 text-lg font-semibold text-ink-900">No meetings scheduled</h3>
-            <p className="mt-1 max-w-sm text-sm text-ink-900/55">
-              Hit “Schedule a meeting” and tell the assistant what you need — it’ll do the rest.
-            </p>
-            {!showVoiceInput && (
-              <button
-                type="button"
-                onClick={() => setShowVoiceInput(true)}
-                aria-expanded={showVoiceInput}
-                aria-controls="voice-scheduler-panel"
-                className="btn-primary mt-5"
-              >
-                <Plus className="h-4 w-4" />
-                Schedule your first meeting
-              </button>
-            )}
-          </div>
-        ) : (
-          sorted.map((m, i) => <MeetingCard key={m.id} meeting={m} style={{ animationDelay: `${i * 60}ms` }} />)
-        )}
-      </div>
+          <h3 className="mt-5 text-lg font-semibold text-ink-900">No meetings scheduled</h3>
+          <p className="mt-1 max-w-sm text-sm text-ink-900/55">
+            Hit “Schedule a meeting” and tell the assistant what you need — it’ll do the rest.
+          </p>
+          {!showVoiceInput && (
+            <button
+              type="button"
+              onClick={() => setShowVoiceInput(true)}
+              aria-expanded={showVoiceInput}
+              aria-controls="voice-scheduler-panel"
+              className="btn-primary mt-5"
+            >
+              <Plus className="h-4 w-4" />
+              Schedule your first meeting
+            </button>
+          )}
+        </div>
+      ) : (
+<ul aria-label="Scheduled meetings" className="space-y-3">
+          {sorted.map((m, i) => <MeetingCard key={m.id} meeting={m} style={{ animationDelay: `${i * 60}ms` }} />)}
+        </ul>
+      )}
     </div>
   );
 };
@@ -230,7 +230,7 @@ const MeetingCard = React.memo(({ meeting, style }) => {
   const month = MONTHS[d.getMonth()];
   const endTime = new Date(d.getTime() + (meeting.duration || 30) * 60000);
   return (
-    <div
+    <li
       className="card group flex items-center gap-4 p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-glow animate-fade-in-up"
       style={style}
     >
@@ -242,7 +242,7 @@ const MeetingCard = React.memo(({ meeting, style }) => {
       <div className="min-w-0 flex-1">
         <h3 className="truncate text-base font-semibold text-ink-900">{meeting.title}</h3>
         <p className="mt-1 flex items-center gap-1.5 text-sm text-ink-900/55">
-          <Clock className="h-4 w-4" />
+          <Clock className="h-4 w-4" aria-hidden="true" />
           {fmt.format(d)} – {fmt.format(endTime)}
         </p>
         {meeting.description && (
@@ -252,8 +252,8 @@ const MeetingCard = React.memo(({ meeting, style }) => {
 
       <span className="pill bg-primary-50 text-primary-700">{meeting.duration || 30} min</span>
 
-      <ArrowRight className="hidden h-5 w-5 flex-none text-ink-900/25 transition group-hover:translate-x-1 group-hover:text-primary-500 sm:block" />
-    </div>
+      <ArrowRight className="hidden h-5 w-5 flex-none text-ink-900/25 transition group-hover:translate-x-1 group-hover:text-primary-500 sm:block" aria-hidden="true" />
+    </li>
   );
 });
 
