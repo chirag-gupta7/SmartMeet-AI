@@ -50,6 +50,10 @@
 **Learning:** Normalizing arrays of external calendar events previously called `start_val.replace('Z', '+00:00')` on every event string, causing unnecessary string allocations. Reusing `parse_iso_datetime` takes advantage of Python 3.11+ direct fast `datetime.fromisoformat` without string allocations.
 **Action:** Use `parse_iso_datetime` consistently for ISO8601 string parsing across services and route handlers.
 
+## 2026-07-28 - Request-Context Aware Database Session Retention
+**Learning:** Calling `db.session.remove()` in background service helpers (e.g. `VoiceCommandProcessor._log_command_to_database` or `take_note`) tears down the active SQLAlchemy scoped session when invoked during an HTTP request. This detaches ORM models mid-request and forces Flask-SQLAlchemy to dispose of the connection and re-query on subsequent ORM access.
+**Action:** Use `has_request_context()` to skip `db.session.remove()` during HTTP request handling, leaving session lifecycle management to Flask's request teardown handler.
+
 ## 2026-09-17 - Composite Indexing for User Meeting Queries
 **Learning:** Queries filtering by `owner_id` and ordering or filtering by `start_time` (`WHERE owner_id = ? AND start_time >= ? ORDER BY start_time ASC`) were triggering `USE TEMP B-TREE FOR ORDER BY` in SQLite because single-column indexes on `owner_id` and `start_time` cannot serve both filtering and sorting simultaneously.
 **Action:** Always create a composite index on `(owner_id, start_time)` when queries frequently retrieve entity collections for a specific user ordered by date.
