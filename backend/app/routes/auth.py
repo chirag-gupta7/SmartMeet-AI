@@ -117,10 +117,16 @@ def current_user():
 @auth_bp.post("/google")
 def google_login():
     payload = request.get_json() or {}
-    code = payload.get("code")
+    raw_code = payload.get("code")
 
-    if not code:
+    if not isinstance(raw_code, str) or not raw_code.strip():
         return jsonify({"message": "Authorization code is required"}), 400
+
+    code = raw_code.strip()
+    if len(code) > 2048:
+        return jsonify(
+            {"message": "Authorization code exceeds maximum length limit"}
+        ), 400
 
     try:
         creds_file = os.path.join(os.getcwd(), "credentials.json")
