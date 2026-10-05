@@ -119,6 +119,12 @@ def parse_natural_language_datetime(text, timezone_name=None):
     results including success status, extracted timezone-aware date/time,
     and whether it's an all-day event.
     """
+    if not isinstance(text, str):
+        return {
+            "success": False,
+            "error": "Invalid input type for datetime parsing",
+        }
+
     original_text = text
     text = text.lower().strip()
     tzinfo_obj = resolve_timezone(timezone_name)
