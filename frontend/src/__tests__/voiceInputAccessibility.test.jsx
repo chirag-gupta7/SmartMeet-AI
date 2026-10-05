@@ -61,4 +61,23 @@ describe('VoiceInput Component Accessibility & ARIA', () => {
     expect(responseMsg).toBeInTheDocument();
     expect(responseMsg).toHaveAttribute('aria-live', 'polite');
   });
+
+  test('displays processing status message in live region when isProcessing is true', () => {
+    render(
+      <VoiceInput
+        onTranscript={jest.fn()}
+        onProcessing={jest.fn()}
+        isProcessing={true}
+        responseMessage=""
+        authUrl={null}
+      />
+    );
+
+    const statuses = screen.getAllByRole('status');
+    const processingMsg = statuses.find((el) =>
+      el.textContent.includes('Processing command…')
+    );
+    expect(processingMsg).toBeInTheDocument();
+    expect(processingMsg).toHaveAttribute('aria-live', 'polite');
+  });
 });
