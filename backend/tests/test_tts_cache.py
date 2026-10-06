@@ -85,3 +85,14 @@ def test_do_not_cache_failures():
             assert res2 is not None
             # Should have called convert again because the failure wasn't cached
             assert mock_client.text_to_speech.convert.call_count == 2
+
+def test_synthesize_speech_invalid_inputs():
+    mock_app = MagicMock()
+    mock_app.config = {
+        "ELEVENLABS_API_KEY": "test_key",
+        "ELEVENLABS_VOICE_ID": "test_voice"
+    }
+
+    with patch("app.services.elevenlabs_service.current_app", mock_app):
+        for bad_input in [None, 123, "", "   ", "a" * 5001]:
+            assert synthesize_speech(bad_input) is None
