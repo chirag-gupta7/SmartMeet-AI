@@ -197,3 +197,17 @@ def test_detect_and_process_and_parse_datetime_non_string():
         res = parse_natural_language_datetime(bad_input)
         assert res["success"] is False
         assert res["error"] == "Invalid input type for datetime parsing"
+
+
+def test_generate_action_reply_invalid_inputs():
+    from app.services.llm_service import generate_action_reply
+
+    for bad_input in [None, 123, "", "   "]:
+        action, reply = generate_action_reply(bad_input)
+        assert action == "general_response"
+        assert "didn't catch that" in reply
+
+    oversized = "a" * 5001
+    action, reply = generate_action_reply(oversized)
+    assert action == "general_response"
+    assert "exceeds maximum allowed length" in reply
