@@ -38,6 +38,25 @@ def test_sync_calendar_invalid_title(client, auth_headers):
     assert "255 characters or fewer" in res.get_json()["message"]
 
 
+def test_create_event_manual_parse_invalid_or_oversized():
+    from app.services.calendar_event_parser import create_event_manual_parse
+
+    def _dummy_service():
+        raise AssertionError("Service should not be called on invalid input")
+
+    # Non-string or empty inputs
+    for invalid_text in [None, 12345, [], {}, "", "   "]:
+        result = create_event_manual_parse(invalid_text, _dummy_service)
+        assert result["success"] is False
+        assert result["error"] == "Invalid event text provided"
+
+    # Oversized input
+    oversized_text = "Schedule meeting " + "A" * 10000
+    result = create_event_manual_parse(oversized_text, _dummy_service)
+    assert result["success"] is False
+    assert result["error"] == "Event text exceeds maximum allowed length of 10000 characters"
+
+
 def test_create_structured_event_invalid_timezone_and_notifications(
     client, auth_headers
 ):

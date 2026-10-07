@@ -35,7 +35,22 @@ def create_event_manual_parse(
     relative dates/times are interpreted in it and the Google payload is
     sent with a UTC-converted dateTime plus the user's timezone label.
     """
-    logger.info(f"Attempting manual parse for event: {conversation_text}")
+    if not isinstance(conversation_text, str) or not conversation_text.strip():
+        return {
+            'success': False,
+            'error': 'Invalid event text provided',
+            'message': '❌ Could not understand the event text. Please try again with a clearer date and time.'
+        }
+
+    conversation_text = conversation_text.strip()
+    if len(conversation_text) > 10000:
+        return {
+            'success': False,
+            'error': 'Event text exceeds maximum allowed length of 10000 characters',
+            'message': '❌ Event text is too long (maximum 10,000 characters).'
+        }
+
+    logger.info(f"Attempting manual parse for event: {conversation_text[:50]}...")
     summary = "Untitled Event"
 
     # Simple regex to find common patterns for event summary
