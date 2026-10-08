@@ -68,6 +68,27 @@ def test_llm_service_performance(app):
             assert second_duration < 0.01
 
 
+def test_llm_service_input_validation(app):
+    with app.app_context():
+        # Non-string inputs
+        for invalid in [None, 123, [], {}]:
+            action, reply = llm_service.generate_action_reply(invalid)
+            assert action == "general_response"
+            assert reply == "I didn't hear anything."
+
+        # Empty and whitespace-only strings
+        for empty in ["", "   ", "\n\t"]:
+            action, reply = llm_service.generate_action_reply(empty)
+            assert action == "general_response"
+            assert reply == "I didn't hear anything."
+
+        # Oversized input (>5000 characters)
+        oversized = "a" * 5001
+        action, reply = llm_service.generate_action_reply(oversized)
+        assert action == "general_response"
+        assert reply == "Input text is too long."
+
+
 def test_elevenlabs_service_performance(app):
     with app.app_context():
         with patch('app.services.elevenlabs_service.ElevenLabs') as mock_client_class:
