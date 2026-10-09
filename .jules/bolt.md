@@ -65,3 +65,7 @@
 ## 2026-09-19 - Module-level Constants for Hot-Path Datetime Parsing & Imports
 **Learning:** Defining list structures inside hot-path functions (e.g. `day_keywords` in `parse_natural_language_datetime`) creates redundant object allocations on every function execution. Additionally, calling `.lower()` on already-lowercased strings inside search loops adds unnecessary string overhead.
 **Action:** Extract static collection literals to module-level tuple constants and reuse pre-lowercased variables in string searches.
+
+## 2026-10-09 - Primitive Prop Passing to React.memo Components
+**Learning:** In React, passing inline object literals (such as `style={{ animationDelay: `${i * 60}ms` }}`) to components wrapped in `React.memo` creates a new object reference on every parent render. This invalidates `React.memo`'s shallow equality check (`prevProps.style !== nextProps.style`), causing child components to re-render needlessly when parent state updates.
+**Action:** Pass primitive props (such as numbers or strings like `index={i}`) to memoized child components and compute style objects internally with `useMemo`.
