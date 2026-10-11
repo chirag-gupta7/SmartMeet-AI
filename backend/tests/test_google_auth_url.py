@@ -56,3 +56,14 @@ def test_get_auth_url_uses_configured_frontend_url(app, monkeypatch):
         google_calendar.get_auth_url()
 
     assert flow.redirect_uri == "https://meet.example.com/auth/callback"
+
+
+def test_get_auth_url_handles_missing_credentials_file_gracefully(app):
+    with patch(
+        "app.services.google_calendar.InstalledAppFlow"
+    ) as mock_flow_cls:
+        mock_flow_cls.from_client_secrets_file.side_effect = FileNotFoundError(
+            "credentials.json not found"
+        )
+        url = google_calendar.get_auth_url()
+        assert url is None
