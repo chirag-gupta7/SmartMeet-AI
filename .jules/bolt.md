@@ -65,3 +65,7 @@
 ## 2026-09-19 - Module-level Constants for Hot-Path Datetime Parsing & Imports
 **Learning:** Defining list structures inside hot-path functions (e.g. `day_keywords` in `parse_natural_language_datetime`) creates redundant object allocations on every function execution. Additionally, calling `.lower()` on already-lowercased strings inside search loops adds unnecessary string overhead.
 **Action:** Extract static collection literals to module-level tuple constants and reuse pre-lowercased variables in string searches.
+
+## 2026-07-20 - Guarding Fuzzy Date Parsing on Dateless Natural Language Inputs
+**Learning:** Unconditionally invoking dateutil.parser.parse(text, fuzzy=True) on free-form transcripts or command text without digits or month keywords raises and catches unnecessary ParserError exceptions and logs warnings on dateless inputs.
+**Action:** Guard fallback calls to dateutil.parser.parse(text, fuzzy=True) with regex checks for digits or month names (_DIGIT_PATTERN or _MONTH_PATTERN) to bypass expensive fuzzy parsing and exception overhead.
