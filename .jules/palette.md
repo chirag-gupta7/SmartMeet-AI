@@ -25,3 +25,7 @@
 ## 2026-09-25 - Semantic List Landmarks and Decorative Icon Hiding for Card Collections
 **Learning:** Rendering meeting or event collections using unlabelled `div` wrappers prevents screen reader users from navigating by list landmarks or hearing total item counts. Furthermore, un-hidden decorative icons inside list items generate extra noise during screen reader speech.
 **Action:** Always wrap card lists in semantic `<ul aria-label="...">` elements with `<li>` items, and add `aria-hidden="true"` to purely decorative visual icons.
+
+## 2026-09-18 - Single ARIA Live Container and Elimination of Empty Status Regions
+**Learning:** Rendering empty <p role=status> elements or nesting ole=status tags inside parent live containers causes DOM testing conflicts and stutters/duplicate announcements in screen readers.
+**Action:** Conditionally render status elements only when content exists, and ensure a single outer container manages the ole=status live region.
