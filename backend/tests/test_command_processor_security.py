@@ -197,3 +197,22 @@ def test_detect_and_process_and_parse_datetime_non_string():
         res = parse_natural_language_datetime(bad_input)
         assert res["success"] is False
         assert res["error"] == "Invalid input type for datetime parsing"
+
+
+def test_get_weather_request_exception_redacts_api_key(monkeypatch):
+    import requests
+
+    secret_key = "secret_openweather_key_12345"
+    processor = VoiceCommandProcessor()
+    processor.weather_api_key = secret_key
+
+    def fake_get(*args, **kwargs):
+        raise requests.exceptions.RequestException(
+            f"Connection error to https://api.openweathermap.org/data/2.5/weather?q=London&appid={secret_key}"
+        )
+
+    monkeypatch.setattr(requests, "get", fake_get)
+    res = processor.get_weather("London")
+    assert res["success"] is False
+    assert secret_key not in res["error"]
+    assert "[REDACTED]" in res["error"]
