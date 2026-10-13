@@ -94,3 +94,20 @@ def test_manual_parse_reports_error_for_garbage_input():
     assert result["success"] is False
     assert result["error"] == "Could not understand the date and time for this event"
     assert "Could not understand when this event should be scheduled" in result["message"]
+
+
+def test_manual_parse_invalid_or_oversized_input():
+    def _unexpected_service():
+        raise AssertionError("calendar service must not be created for invalid input")
+
+    # Non-string and empty/whitespace inputs
+    for invalid_input in [None, 123, [], {}, "", "   "]:
+        result = create_event_manual_parse(invalid_input, _unexpected_service, UTC)
+        assert result["success"] is False
+        assert result["error"] == "Invalid conversation text provided"
+
+    # Oversized input (>10,000 characters)
+    oversized_text = "Schedule meeting tomorrow " + ("x" * 10001)
+    result = create_event_manual_parse(oversized_text, _unexpected_service, UTC)
+    assert result["success"] is False
+    assert "exceeds maximum allowed length" in result["error"]
