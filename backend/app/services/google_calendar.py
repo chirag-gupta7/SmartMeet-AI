@@ -82,27 +82,32 @@ def create_event(access_token: str, event_payload: Dict[str, Any]) -> Optional[D
         return None
 
 
-def get_auth_url() -> str:
+def get_auth_url() -> Optional[str]:
     """Generate a Google OAuth URL for the frontend to open.
 
     The default redirect URI must match the React route that handles the
     callback (App.jsx: /auth/callback) - the old ':3000/oauth2callback'
     default pointed at a route that does not exist, dropping the auth code.
-    GOOGLE_REDIRECT_URI can still override it for deployments.
+    GOOGLE_REDIRECT_URI can still override it for deployments. Returns None
+    if credentials.json is missing or malformed to avoid unhandled errors.
     """
-    creds_file = os.path.join(os.getcwd(), "credentials.json")
-    frontend_url = (
-        current_app.config.get("FRONTEND_URL") or "http://localhost:3000"
-    ).rstrip("/")
-    flow = InstalledAppFlow.from_client_secrets_file(
-        creds_file,
-        scopes=["https://www.googleapis.com/auth/calendar.events"],
-    )
-    flow.redirect_uri = os.environ.get(
-        "GOOGLE_REDIRECT_URI", f"{frontend_url}/auth/callback"
-    )
-    auth_url, _ = flow.authorization_url(prompt="consent")
-    return auth_url
+    try:
+        creds_file = os.path.join(os.getcwd(), "credentials.json")
+        frontend_url = (
+            current_app.config.get("FRONTEND_URL") or "http://localhost:3000"
+        ).rstrip("/")
+        flow = InstalledAppFlow.from_client_secrets_file(
+            creds_file,
+            scopes=["https://www.googleapis.com/auth/calendar.events"],
+        )
+        flow.redirect_uri = os.environ.get(
+            "GOOGLE_REDIRECT_URI", f"{frontend_url}/auth/callback"
+        )
+        auth_url, _ = flow.authorization_url(prompt="consent")
+        return auth_url
+    except Exception as exc:
+        logger.warning("Failed to generate Google auth URL: %s", exc)
+        return None
 
 
 def get_service_for_user(user_id: str):
