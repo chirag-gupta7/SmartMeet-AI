@@ -69,3 +69,7 @@
 ## 2026-07-20 - Guarding Fuzzy Date Parsing on Dateless Natural Language Inputs
 **Learning:** Unconditionally invoking dateutil.parser.parse(text, fuzzy=True) on free-form transcripts or command text without digits or month keywords raises and catches unnecessary ParserError exceptions and logs warnings on dateless inputs.
 **Action:** Guard fallback calls to dateutil.parser.parse(text, fuzzy=True) with regex checks for digits or month names (_DIGIT_PATTERN or _MONTH_PATTERN) to bypass expensive fuzzy parsing and exception overhead.
+
+## 2026-10-09 - Primitive Prop Passing to React.memo Components
+**Learning:** In React, passing inline object literals (such as style animationDelay objects) to components wrapped in React.memo creates a new object reference on every parent render, invalidating the shallow equality check and causing needless child re-renders when parent state updates.
+**Action:** Pass primitive props (such as numbers or strings like index={i}) to memoized child components and compute style objects internally with useMemo.
