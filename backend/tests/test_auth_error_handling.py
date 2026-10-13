@@ -101,3 +101,18 @@ def test_update_user_non_string_or_oversized_name_returns_400(
     )
     assert resp3.status_code == 400
     assert resp3.get_json()["message"] == "Invalid timezone"
+
+
+def test_google_login_invalid_or_oversized_code_returns_400(client):
+    """Non-string, whitespace-only, or oversized authorization code in Google login returns 400."""
+    resp_non_string = client.post("/api/auth/google", json={"code": 12345})
+    assert resp_non_string.status_code == 400
+    assert "Authorization code is required" in resp_non_string.get_json()["message"]
+
+    resp_empty = client.post("/api/auth/google", json={"code": "   "})
+    assert resp_empty.status_code == 400
+    assert "Authorization code is required" in resp_empty.get_json()["message"]
+
+    resp_oversized = client.post("/api/auth/google", json={"code": "a" * 2049})
+    assert resp_oversized.status_code == 400
+    assert "Authorization code is invalid or too long" in resp_oversized.get_json()["message"]
