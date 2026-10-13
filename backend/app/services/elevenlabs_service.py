@@ -49,8 +49,14 @@ def synthesize_speech(text: str) -> Optional[str]:
     """
     Convert text to base64-encoded audio using ElevenLabs.
     Uses memoization to cache results of frequent requests.
+    Enforces string input type and caps maximum length at 5,000 characters
+    to prevent DoS and unexpected API cost bloat.
     """
-    if not text:
+    if not isinstance(text, str) or not text.strip():
+        return None
+
+    if len(text) > 5000:
+        logger.warning("TTS text input exceeds 5,000 characters limit")
         return None
 
     api_key = current_app.config.get("ELEVENLABS_API_KEY")
