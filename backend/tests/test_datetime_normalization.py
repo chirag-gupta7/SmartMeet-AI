@@ -3,8 +3,10 @@ to naive UTC before storage, and the local-events window filter uses naive
 UTC so aware/naive values never mix inside a query."""
 from datetime import datetime, timedelta
 
+import pytest
 from app.extensions import db
 from app.models import Meeting
+from app.timeutils import parse_iso_datetime
 
 
 def _headers(client, user_factory, auth_headers, email):
@@ -97,3 +99,25 @@ def test_local_events_listing_includes_recent_meeting(client, user_factory, auth
     assert listed.get_json()["source"] == "local"
     ids = [e["id"] for e in listed.get_json()["events"]]
     assert meeting_id in ids
+
+
+def test_parse_iso_datetime_oversized_string_raises_value_error():
+    long_string = "2026-09-01T10:00:00Z" + "A" * 120
+    with pytest.raises(ValueError) as exc_info:
+        parse_iso_datetime(long_string)
+    assert "exceeds maximum allowed length" in str(exc_info.value)
+
+
+def test_create_meeting_with_oversized_start_time_returns_400(
+    client, user_factory, auth_headers
+):
+    headers = _headers(client, user_factory, auth_headers, "tz-oversized@example.com")
+    long_start_time = "2026-09-01T10:00:00Z" + "B" * 120
+
+    resp = client.post(
+        "/api/meetings",
+        json={"title": "Oversized start time", "start_time": long_start_time},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+    assert "start_time must be ISO8601" in resp.get_json()["message"]
