@@ -111,3 +111,18 @@ def test_manual_parse_invalid_or_oversized_input():
     result = create_event_manual_parse(oversized_text, _unexpected_service, UTC)
     assert result["success"] is False
     assert "exceeds maximum allowed length" in result["error"]
+
+
+def test_manual_parse_exception_sanitization():
+    sensitive_detail = "DB_CONN_STR=postgresql://user:secret_pass@db.internal:5432/prod"
+
+    def _failing_service():
+        raise RuntimeError(sensitive_detail)
+
+    result = create_event_manual_parse("Schedule meeting tomorrow at 3pm", _failing_service, UTC)
+
+    assert result["success"] is False
+    assert result["error"] == "Failed to create event"
+    assert result["message"] == "❌ Failed to create event. Please try again later."
+    assert sensitive_detail not in result["error"]
+    assert sensitive_detail not in result["message"]
