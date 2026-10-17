@@ -2,7 +2,10 @@ from datetime import datetime, timedelta
 
 from zoneinfo import ZoneInfo
 
-from app.services.datetime_parser import parse_natural_language_datetime
+from app.services.datetime_parser import (
+    parse_natural_language_datetime,
+    resolve_timezone,
+)
 from app.services.calendar_event_parser import create_event_manual_parse
 
 
@@ -71,6 +74,28 @@ def test_day_keyword_without_time_is_all_day():
     # Next Friday relative to now (weekday 4), matching parser logic.
     days_ahead = (11 - now.weekday()) % 7 or 7
     assert result["start_date"] == (now + timedelta(days=days_ahead)).date()
+
+
+def test_parse_natural_language_datetime_rejects_oversized_text():
+    oversized = "tomorrow " + ("x" * 10000)
+    result = parse_natural_language_datetime(oversized, UTC)
+
+    assert result["success"] is False
+    assert (
+        result["error"]
+        == "Input text exceeds maximum allowed length of 10000 characters"
+    )
+
+
+def test_resolve_timezone_handles_invalid_or_oversized_inputs():
+    utc_zone = resolve_timezone(None)
+    assert getattr(utc_zone, "key", "UTC") == "UTC"
+
+    invalid_type_zone = resolve_timezone(12345)
+    assert getattr(invalid_type_zone, "key", "UTC") == "UTC"
+
+    oversized_zone = resolve_timezone("America/" + ("a" * 60))
+    assert getattr(oversized_zone, "key", "UTC") == "UTC"
 
 
 def test_garbage_input_returns_failure():
