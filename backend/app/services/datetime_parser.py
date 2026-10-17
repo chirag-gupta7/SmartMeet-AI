@@ -98,10 +98,10 @@ def resolve_timezone(timezone_name=None):
     falling back to UTC when the name is missing or unknown. Memoized
     with lru_cache to eliminate ZoneInfo instantiation overhead.
     """
-    if not timezone_name:
+    if not timezone_name or not isinstance(timezone_name, str) or len(timezone_name.strip()) > 64:
         return _fallback_utc()
     try:
-        return ZoneInfo(str(timezone_name))
+        return ZoneInfo(timezone_name.strip())
     except Exception as exc:  # invalid/unknown IANA name or missing tz db
         logger.warning(
             "Unknown timezone %r (%s); falling back to %s",
@@ -123,6 +123,12 @@ def parse_natural_language_datetime(text, timezone_name=None):
         return {
             "success": False,
             "error": "Invalid input type for datetime parsing",
+        }
+
+    if len(text) > 10000:
+        return {
+            "success": False,
+            "error": "Input text exceeds maximum allowed length of 10000 characters",
         }
 
     original_text = text
