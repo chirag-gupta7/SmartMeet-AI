@@ -73,3 +73,7 @@
 ## 2026-10-09 - Primitive Prop Passing to React.memo Components
 **Learning:** In React, passing inline object literals (such as style animationDelay objects) to components wrapped in React.memo creates a new object reference on every parent render, invalidating the shallow equality check and causing needless child re-renders when parent state updates.
 **Action:** Pass primitive props (such as numbers or strings like index={i}) to memoized child components and compute style objects internally with useMemo.
+
+## 2026-10-24 - Short-Circuit String Guards for Natural Language Parsing Loops
+**Learning:** Iterating through lists of pre-compiled regular expressions (such as time patterns or weekday patterns) on every transcript evaluation causes unnecessary CPU overhead when simple prerequisites (like containing digits or the substring "next") are missing.
+**Action:** Guard regex list scans with fast substring/pattern pre-checks (e.g. `_DIGIT_PATTERN.search(text)` or `"next" in text`) to short-circuit regex loop execution on non-matching inputs.

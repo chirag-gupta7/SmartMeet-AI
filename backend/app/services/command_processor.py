@@ -136,30 +136,34 @@ class VoiceCommandProcessor:
     Enhanced voice command processor with real API integrations.
     Supports weather, news, reminders, timers, notes, and more.
     """
+
+    # BOLT OPTIMIZATION: Module-scoped/class-level command lookup table eliminates
+    # allocating a 16-element dictionary of bound methods on every processor instantiation.
+    _COMMAND_MAP = {
+        'weather': 'get_weather',
+        'news': 'get_news',
+        'reminder': 'set_reminder',
+        'timer': 'set_timer',
+        'note': 'take_note',
+        'search': 'web_search',
+        'translate': 'translate_text',
+        'calculate': 'calculate',
+        'fact': 'get_random_fact',
+        'joke': 'get_joke',
+        # Calendar commands
+        'calendar_next': 'get_next_meeting',
+        'calendar_today': 'get_today_events',
+        'calendar_upcoming': 'get_upcoming_events',
+        'calendar_create': 'create_calendar_event',
+        'calendar_free_time': 'find_free_time',
+        'calendar_status': 'get_calendar_status',
+    }
+
     def __init__(self, user_id: Optional[uuid.UUID] = None, timezone_name: Optional[str] = None):
         # user_id is a UUID object; timezone_name is the user's IANA timezone
         # (e.g. "Asia/Kolkata") used to interpret natural-language dates.
         self.user_id = user_id
         self.timezone_name = timezone_name
-        self.commands = {
-            'weather': self.get_weather,
-            'news': self.get_news,
-            'reminder': self.set_reminder,
-            'timer': self.set_timer,
-            'note': self.take_note,
-            'search': self.web_search,
-            'translate': self.translate_text,
-            'calculate': self.calculate,
-            'fact': self.get_random_fact,
-            'joke': self.get_joke,
-            # Calendar commands
-            'calendar_next': self.get_next_meeting,
-            'calendar_today': self.get_today_events,
-            'calendar_upcoming': self.get_upcoming_events,
-            'calendar_create': self.create_calendar_event,
-            'calendar_free_time': self.find_free_time,
-            'calendar_status': self.get_calendar_status,
-        }
         
         # API Keys from environment
         self.weather_api_key = os.getenv('OPENWEATHER_API_KEY')
@@ -167,6 +171,11 @@ class VoiceCommandProcessor:
         
         # Active timers storage
         self.active_timers = {}
+
+    @property
+    def commands(self) -> Dict[str, Any]:
+        """Lazy property returning dictionary of bound command handlers for backwards compatibility."""
+        return {cmd: getattr(self, method) for cmd, method in self._COMMAND_MAP.items()}
 
     def process_command(self, command: str, **kwargs) -> Dict[str, Any]:
         """
@@ -196,7 +205,8 @@ class VoiceCommandProcessor:
                 logger.info(f"Extracted location: {location}")
                 return self.get_weather(location=location)
                 
-        action = self.commands.get(command)
+        method_name = self._COMMAND_MAP.get(command)
+        action = getattr(self, method_name, None) if method_name else None
         if action:
             logger.info(f"Processing command '{command}' for user {self.user_id}")
             
