@@ -14,6 +14,11 @@ def parse_iso_datetime(value_str: str) -> datetime:
     """
     if not isinstance(value_str, str):
         raise TypeError("ISO datetime value must be a string")
+    if len(value_str) > 128:
+        raise ValueError(
+            "ISO datetime string exceeds maximum allowed length of 128"
+            " characters"
+        )
     try:
         return datetime.fromisoformat(value_str)
     except ValueError:
