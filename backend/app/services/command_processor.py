@@ -436,7 +436,10 @@ class VoiceCommandProcessor:
             }
             
         except requests.exceptions.RequestException as e:
-            error_msg = f"Failed to fetch weather data: {str(e)}"
+            err_str = str(e)
+            if api_key and isinstance(api_key, str) and api_key in err_str:
+                err_str = err_str.replace(api_key, "[REDACTED]")
+            error_msg = f"Failed to fetch weather data: {err_str}"
             logger.error(error_msg)
             return {
                 'success': False,

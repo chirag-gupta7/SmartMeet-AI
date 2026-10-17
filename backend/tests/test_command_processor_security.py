@@ -197,3 +197,22 @@ def test_detect_and_process_and_parse_datetime_non_string():
         res = parse_natural_language_datetime(bad_input)
         assert res["success"] is False
         assert res["error"] == "Invalid input type for datetime parsing"
+
+
+def test_get_weather_redacts_api_key_on_request_exception(monkeypatch):
+    import requests
+
+    processor = VoiceCommandProcessor()
+    processor.weather_api_key = "secret_owm_api_key_12345"
+
+    def mock_get(*args, **kwargs):
+        raise requests.exceptions.RequestException(
+            "401 Client Error: Unauthorized for url: "
+            "https://api.openweathermap.org/data/2.5/weather?q=London&appid=secret_owm_api_key_12345&units=imperial"
+        )
+
+    monkeypatch.setattr(requests, "get", mock_get)
+    res = processor.get_weather("London")
+    assert res["success"] is False
+    assert "secret_owm_api_key_12345" not in res["error"]
+    assert "[REDACTED]" in res["error"]
