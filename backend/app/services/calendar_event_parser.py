@@ -174,9 +174,9 @@ def create_event_manual_parse(
             return result
         
     except Exception as e:
-        logger.error(f"Error in manual event parsing: {e}")
+        logger.error("Error in manual event parsing: %s", e)
         return {
             'success': False,
-            'error': str(e),
-            'message': f"❌ Failed to create event: {str(e)}"
+            'error': 'Failed to create event',
+            'message': '❌ Failed to create event. Please try again later.'
         }
