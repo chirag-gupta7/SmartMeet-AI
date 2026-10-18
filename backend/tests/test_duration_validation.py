@@ -140,6 +140,52 @@ def test_calendar_sync_rejects_non_integer_duration(client, user_factory, auth_h
     assert resp_over.status_code == 400
 
 
+def test_structured_event_rejects_invalid_end_time_ordering_and_duration(
+    client, user_factory, auth_headers
+):
+    user = user_factory(email="dur-end-val@example.com")
+    headers = auth_headers(user.id)
+
+    # End time before start time
+    resp_before = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "End Before Start",
+            "start": "2026-09-01T10:00:00",
+            "end": "2026-09-01T09:00:00",
+        },
+        headers=headers,
+    )
+    assert resp_before.status_code == 400
+    assert resp_before.get_json()["success"] is False
+
+    # End time equal to start time (duration = 0)
+    resp_equal = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "End Equal Start",
+            "start": "2026-09-01T10:00:00",
+            "end": "2026-09-01T10:00:00",
+        },
+        headers=headers,
+    )
+    assert resp_equal.status_code == 400
+    assert resp_equal.get_json()["success"] is False
+
+    # End time results in duration > 1440 minutes (25 hours = 1500 mins)
+    resp_oversized = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "End Way After Start",
+            "start": "2026-09-01T10:00:00",
+            "end": "2026-09-02T11:00:00",
+        },
+        headers=headers,
+    )
+    assert resp_oversized.status_code == 400
+    assert resp_oversized.get_json()["success"] is False
+
+
 def test_structured_event_rejects_zero_and_oversized_duration(client, user_factory, auth_headers):
     user = user_factory(email="dur-e@example.com")
     headers = auth_headers(user.id)
