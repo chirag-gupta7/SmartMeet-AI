@@ -248,3 +248,36 @@ def test_calendar_endpoints_accept_valid_inputs(
     assert resp_struct.get_json()["success"] is True
 
     assert Meeting.query.filter_by(owner_id=user.id).count() == 2
+
+
+def test_create_structured_event_rejects_invalid_end_time(
+    client, user_factory, auth_headers
+):
+    user = user_factory(email="calvalend@example.com")
+    headers = auth_headers(user.id)
+
+    # end_time <= start_time
+    resp_earlier = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Invalid End",
+            "start": "2026-09-01T10:00:00",
+            "end": "2026-09-01T09:00:00",
+        },
+        headers=headers,
+    )
+    assert resp_earlier.status_code == 400
+    assert "end_time must be strictly after start_time" in resp_earlier.get_json()["message"]
+
+    # Derived duration > 1440 minutes (e.g. 2 days)
+    resp_oversized = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Too Long Event",
+            "start": "2026-09-01T10:00:00",
+            "end": "2026-09-03T10:00:00",
+        },
+        headers=headers,
+    )
+    assert resp_oversized.status_code == 400
+    assert "duration_minutes must be between 1 and 1440" in resp_oversized.get_json()["message"]
