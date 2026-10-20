@@ -44,10 +44,10 @@ def _get_client(api_key: str) -> Optional[InferenceClient]:
 
 
 @lru_cache(maxsize=100)
-def _memoized_generate_action_reply(user_text: str, api_key: str) -> str:
+def _memoized_generate_action_reply(user_text: str, api_key: str) -> Tuple[str, str]:
     """
-    Perform the actual LLM API call and cache results.
-    Returns the cleaned raw string content from the LLM.
+    Perform the actual LLM API call, parse the resulting JSON, and cache the tuple.
+    Returns the parsed (action, reply) tuple directly.
     Raises Exception on failure to avoid caching error states.
     """
     # BOLT OPTIMIZATION: reuse the cached client instead of creating a new
@@ -72,7 +72,22 @@ def _memoized_generate_action_reply(user_text: str, api_key: str) -> str:
     if "```" in content:
         content = content.replace("```json", "").replace("```", "")
 
-    return content.strip()
+    content = content.strip()
+
+    action = "general_response"
+    reply = "I understood, but couldn't generate a structured response."
+
+    # Parse JSON
+    try:
+        data = json.loads(content)
+        if isinstance(data, dict):
+            action = data.get("action") or action
+            reply = data.get("reply") or reply
+    except json.JSONDecodeError:
+        logger.warning("Failed to parse JSON from HF: %s", content)
+        reply = content  # Fallback: just speak the raw text
+
+    return action, reply
 
 
 def generate_action_reply(user_text: str) -> Tuple[str, str]:
@@ -88,27 +103,13 @@ def generate_action_reply(user_text: str) -> Tuple[str, str]:
         return "general_response", "AI is not configured."
 
     try:
-        # Use memoized helper to avoid redundant LLM calls for same transcript.
+        # BOLT OPTIMIZATION: Memoized helper parses and caches the (action, reply) tuple directly.
+        # This avoids json.loads parsing, string cleaning, and dictionary allocations on cache hits.
         # Exceptions are not cached by lru_cache, allowing retry on next call.
-        content = _memoized_generate_action_reply(user_text, api_key)
+        return _memoized_generate_action_reply(user_text, api_key)
     except Exception as exc:  # pylint: disable=broad-except
         logger.warning("Hugging Face generation failed: %s", exc)
         return "general_response", "I'm having trouble connecting to the brain."
-
-    # Parse JSON
-    action = "general_response"
-    reply = "I understood, but couldn't generate a structured response."
-
-    try:
-        data = json.loads(content)
-        if isinstance(data, dict):
-            action = data.get("action") or action
-            reply = data.get("reply") or reply
-    except json.JSONDecodeError:
-        logger.warning("Failed to parse JSON from HF: %s", content)
-        reply = content  # Fallback: just speak the raw text
-
-    return action, reply
 
 
 __all__ = ["generate_action_reply"]
