@@ -218,10 +218,9 @@ class VoiceCommandProcessor:
                 self._log_command_to_database('INFO', f"Command '{command}' completed successfully", result)
                 return result
             except Exception as e:
-                error_msg = f"Error processing command '{command}': {str(e)}"
-                logger.error(error_msg)
-                self._log_command_to_database('ERROR', error_msg, {'error': str(e)})
-                return {'success': False, 'error': error_msg, 'user_message': 'Sorry, I encountered an error processing that command.'}
+                logger.error(f"Error processing command '{command}': {str(e)}")
+                self._log_command_to_database('ERROR', f"Error processing command '{command}': {str(e)}", {'error': str(e)})
+                return {'success': False, 'error': f"Error processing command '{command}'", 'user_message': 'Sorry, I encountered an error processing that command.'}
         else:
             error_msg = f"Unknown command: {command}"
             logger.warning(error_msg)
@@ -643,7 +642,7 @@ class VoiceCommandProcessor:
             logger.error(f"Error setting timer: {str(e)}")
             return {
                 'success': False, 
-                'error': str(e),
+                'error': 'Failed to set timer',
                 'user_message': 'Sorry, there was an error setting the timer.'
             }
     
@@ -732,7 +731,7 @@ class VoiceCommandProcessor:
                     db.session.rollback()
                 return {
                     'success': False,
-                    'error': str(e),
+                    'error': 'Failed to save note to database',
                     'user_message': 'Sorry, I couldn\'t save that note. Please try again.'
                 }
 
@@ -768,7 +767,7 @@ class VoiceCommandProcessor:
                         _flask_app_instance_cp.logger.error(f"Error during rollback for note: {rollback_e}")
                     return {
                         'success': False,
-                        'error': str(e),
+                        'error': 'Failed to save note to database',
                         'user_message': 'Sorry, I couldn\'t save that note. Please try again.'
                     }
                 finally:
@@ -912,10 +911,17 @@ class VoiceCommandProcessor:
                 },
                 'user_message': f"The result of {expression} is {result}"
             }
-        except Exception as e:
+        except (ValueError, SyntaxError) as e:
             return {
                 'success': False,
                 'error': str(e),
+                'user_message': f"Sorry, I couldn't calculate '{expression}'. Please check the syntax and try again."
+            }
+        except Exception as e:
+            logger.error(f"Error evaluating calculation: {str(e)}")
+            return {
+                'success': False,
+                'error': 'Calculation error',
                 'user_message': f"Sorry, I couldn't calculate '{expression}'. Please check the syntax and try again."
             }
     
@@ -1010,7 +1016,7 @@ class VoiceCommandProcessor:
             logger.error(f"Error getting next meeting: {str(e)}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': 'Failed to get next meeting',
                 'user_message': "I couldn't access your calendar information at the moment."
             }
     
@@ -1067,7 +1073,7 @@ class VoiceCommandProcessor:
             logger.error(f"Error getting today's events: {str(e)}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': 'Failed to get today\'s events',
                 'user_message': "I couldn't access your calendar information at the moment."
             }
     
@@ -1129,7 +1135,7 @@ class VoiceCommandProcessor:
             logger.error(f"Error getting upcoming events: {str(e)}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': 'Failed to get upcoming events',
                 'user_message': "I couldn't access your calendar information at the moment."
             }
     
@@ -1209,7 +1215,7 @@ class VoiceCommandProcessor:
             logger.error(f"Error creating calendar event: {str(e)}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': 'Failed to create calendar event',
                 'user_message': "I couldn't create the calendar event at the moment. Please make sure to include a title, date and time."
             }
     
@@ -1301,7 +1307,7 @@ class VoiceCommandProcessor:
             logger.error(f"Error finding free time: {str(e)}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': 'Failed to find free time',
                 'user_message': "I couldn't access your calendar information to find free time."
             }
     
@@ -1331,6 +1337,6 @@ class VoiceCommandProcessor:
             logger.error(f"Error checking calendar status: {str(e)}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': 'Failed to check calendar status',
                 'user_message': "I couldn't verify your calendar connection status."
             }
