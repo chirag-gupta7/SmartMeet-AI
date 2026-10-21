@@ -216,3 +216,24 @@ def test_get_weather_redacts_api_key_on_request_exception(monkeypatch):
     assert res["success"] is False
     assert "secret_owm_api_key_12345" not in res["error"]
     assert "[REDACTED]" in res["error"]
+
+
+def test_command_processor_sanitizes_uncaught_exception_details(monkeypatch):
+    """
+    Ensure VoiceCommandProcessor handlers sanitize exception details and do not
+    disclose internal exception text/stack traces in response payloads.
+    """
+    sensitive_error = "Internal Database Error: secret_table column password_hash invalid"
+
+    def mock_query_freebusy(*args, **kwargs):
+        raise RuntimeError(sensitive_error)
+
+    import app.services.google_calendar as google_calendar
+    monkeypatch.setattr(google_calendar, "query_freebusy_for_user", mock_query_freebusy)
+
+    processor = VoiceCommandProcessor(user_id="user-123")
+    res = processor.find_free_time("2026-04-01")
+
+    assert res["success"] is False
+    assert res["error"] == "Failed to find free time"
+    assert sensitive_error not in res["error"]
