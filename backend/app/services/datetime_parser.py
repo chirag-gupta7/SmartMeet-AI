@@ -97,11 +97,13 @@ def resolve_timezone(timezone_name=None):
     Resolve an IANA timezone name (e.g. "Asia/Kolkata") to a ZoneInfo,
     falling back to UTC when the name is missing or unknown. Memoized
     with lru_cache to eliminate ZoneInfo instantiation overhead.
+    Validates string type and enforces length limit of 64 characters to
+    prevent memory bloat in lru_cache and invalid ZoneInfo path lookups.
     """
-    if not timezone_name:
+    if not timezone_name or not isinstance(timezone_name, str) or len(timezone_name) > 64:
         return _fallback_utc()
     try:
-        return ZoneInfo(str(timezone_name))
+        return ZoneInfo(timezone_name)
     except Exception as exc:  # invalid/unknown IANA name or missing tz db
         logger.warning(
             "Unknown timezone %r (%s); falling back to %s",
@@ -123,6 +125,14 @@ def parse_natural_language_datetime(text, timezone_name=None):
         return {
             "success": False,
             "error": "Invalid input type for datetime parsing",
+        }
+
+    # SENTINEL SECURITY GUARD: Enforce maximum text length limit of 10,000 characters
+    # to prevent CPU Denial of Service (DoS) via expensive regexes and dateutil parsing.
+    if len(text) > 10000:
+        return {
+            "success": False,
+            "error": "Input text exceeds maximum allowed length of 10000 characters",
         }
 
     original_text = text
