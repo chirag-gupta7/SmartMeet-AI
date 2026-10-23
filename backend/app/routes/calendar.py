@@ -367,11 +367,25 @@ def create_structured_event():
         return jsonify({"success": False, "message": "Invalid start timestamp"}), 400
 
     try:
-        end_time = (
-            to_naive_utc(parse_iso_datetime(end_raw))
-            if end_raw
-            else start_time + timedelta(minutes=duration_minutes)
-        )
+        if end_raw:
+            end_time = to_naive_utc(parse_iso_datetime(end_raw))
+            if end_time <= start_time:
+                return jsonify(
+                    {
+                        "success": False,
+                        "message": "end time must be strictly after start time",
+                    }
+                ), 400
+            derived_duration = int((end_time - start_time).total_seconds() // 60)
+            if derived_duration <= 0 or derived_duration > 1440:
+                return jsonify(
+                    {
+                        "success": False,
+                        "message": "duration derived from end time must be between 1 and 1440 minutes",
+                    }
+                ), 400
+        else:
+            end_time = start_time + timedelta(minutes=duration_minutes)
     except (ValueError, TypeError):
         return jsonify({"success": False, "message": "Invalid end timestamp"}), 400
 
