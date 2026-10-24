@@ -248,3 +248,49 @@ def test_calendar_endpoints_accept_valid_inputs(
     assert resp_struct.get_json()["success"] is True
 
     assert Meeting.query.filter_by(owner_id=user.id).count() == 2
+
+
+def test_create_structured_event_rejects_invalid_end_times(
+    client, user_factory, auth_headers
+):
+    user = user_factory(email="calvalend@example.com")
+    headers = auth_headers(user.id)
+
+    # End before start
+    resp_before = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Invalid End Before Start",
+            "start": "2026-09-01T10:00:00Z",
+            "end": "2026-09-01T09:00:00Z",
+        },
+        headers=headers,
+    )
+    assert resp_before.status_code == 400
+    assert resp_before.get_json()["success"] is False
+
+    # End equal to start
+    resp_equal = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Invalid End Equal Start",
+            "start": "2026-09-01T10:00:00Z",
+            "end": "2026-09-01T10:00:00Z",
+        },
+        headers=headers,
+    )
+    assert resp_equal.status_code == 400
+    assert resp_equal.get_json()["success"] is False
+
+    # Derived duration > 1440 minutes (25 hours)
+    resp_oversized = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Invalid End Oversized Duration",
+            "start": "2026-09-01T10:00:00Z",
+            "end": "2026-09-02T11:01:00Z",
+        },
+        headers=headers,
+    )
+    assert resp_oversized.status_code == 400
+    assert resp_oversized.get_json()["success"] is False
