@@ -38,6 +38,14 @@ def test_sync_calendar_invalid_title(client, auth_headers):
     assert "255 characters or fewer" in res.get_json()["message"]
 
 
+def test_oversized_google_access_token_header_ignored(client, auth_headers):
+    headers = dict(auth_headers)
+    headers["X-Google-Access-Token"] = "ya29." + "x" * 5000
+    res = client.get("/api/calendar/events", headers=headers)
+    assert res.status_code == 200
+    assert res.get_json()["source"] == "local"
+
+
 def test_create_structured_event_invalid_timezone_and_notifications(
     client, auth_headers
 ):
