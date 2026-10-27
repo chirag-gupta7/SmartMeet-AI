@@ -215,6 +215,50 @@ def test_create_structured_event_rejects_invalid_notifications(
     assert "50 or fewer" in resp_notif_large.get_json()["message"]
 
 
+def test_create_structured_event_rejects_invalid_end_time(
+    client, user_factory, auth_headers
+):
+    user = user_factory(email="calvalendtime@example.com")
+    headers = auth_headers(user.id)
+
+    # End time before start time
+    resp_earlier = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Invalid End Time",
+            "start": "2026-09-01T10:00:00",
+            "end": "2026-09-01T09:00:00",
+        },
+        headers=headers,
+    )
+    assert resp_earlier.status_code == 400
+    assert "end_time must be strictly after start_time" in resp_earlier.get_json()["message"]
+
+    # End time equal to start time (0 duration)
+    resp_equal = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Zero Duration",
+            "start": "2026-09-01T10:00:00",
+            "end": "2026-09-01T10:00:00",
+        },
+        headers=headers,
+    )
+    assert resp_equal.status_code == 400
+
+    # End time > 1440 minutes (24 hours) after start time
+    resp_oversized = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Oversized Duration",
+            "start": "2026-09-01T10:00:00",
+            "end": "2026-09-03T10:00:00",
+        },
+        headers=headers,
+    )
+    assert resp_oversized.status_code == 400
+
+
 def test_calendar_endpoints_accept_valid_inputs(
     client, user_factory, auth_headers
 ):
