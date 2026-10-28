@@ -38,6 +38,28 @@ def test_sync_calendar_invalid_title(client, auth_headers):
     assert "255 characters or fewer" in res.get_json()["message"]
 
 
+def test_get_google_access_token_oversized_ignored(client, auth_headers, monkeypatch):
+    from app.routes.calendar import _get_google_access_token
+    from app.services import google_calendar
+
+    called = []
+
+    def mock_list_upcoming_events(token, *args, **kwargs):
+        called.append(token)
+        return []
+
+    monkeypatch.setattr(google_calendar, "list_upcoming_events", mock_list_upcoming_events)
+
+    headers = dict(auth_headers)
+    headers["X-Google-Access-Token"] = "X" * 4097
+
+    res = client.get("/api/calendar/events", headers=headers)
+    assert res.status_code == 200
+    # The oversized token should be treated as empty, so Google list_upcoming_events is not called
+    assert called == []
+    assert res.get_json()["source"] == "local"
+
+
 def test_create_structured_event_invalid_timezone_and_notifications(
     client, auth_headers
 ):
