@@ -100,7 +100,10 @@ def _get_google_access_token() -> str:
     Accepting tokens via query string or body risks them leaking into
     server logs, browser history, and proxies.
     """
-    return request.headers.get("X-Google-Access-Token") or ""
+    token = request.headers.get("X-Google-Access-Token") or ""
+    if not isinstance(token, str) or len(token) > 4096:
+        return ""
+    return token
 
 
 @calendar_bp.get("/events")

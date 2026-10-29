@@ -38,6 +38,38 @@ def test_sync_calendar_invalid_title(client, auth_headers):
     assert "255 characters or fewer" in res.get_json()["message"]
 
 
+def test_google_calendar_token_and_parameter_clamping():
+    from app.services.google_calendar import (
+        _build_service,
+        create_event,
+        list_upcoming_events,
+    )
+
+    # _build_service rejects non-string or oversized tokens
+    assert _build_service(12345) is None
+    assert _build_service("x" * 4097) is None
+
+    # create_event rejects non-dict event payloads
+    assert create_event("valid_token", "not a dict") is None
+
+    # list_upcoming_events handles extreme days_ahead without OverflowError
+    events = list_upcoming_events(
+        access_token="invalid_token",
+        max_results=10000,
+        days_ahead=10**20,
+    )
+    assert events == []
+
+
+def test_oversized_google_access_token_header_ignored(client, auth_headers):
+    headers = dict(auth_headers)
+    headers["X-Google-Access-Token"] = "A" * 5000
+
+    res = client.get("/api/calendar/events", headers=headers)
+    assert res.status_code == 200
+    assert res.get_json()["source"] == "local"
+
+
 def test_create_structured_event_invalid_timezone_and_notifications(
     client, auth_headers
 ):

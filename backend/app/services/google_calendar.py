@@ -23,7 +23,7 @@ NOT_CONNECTED_ERROR = "Google Calendar not connected. Please connect your Google
 
 def _build_service(access_token: str):
     """Create a Google Calendar service client using a raw access token."""
-    if not access_token:
+    if not access_token or not isinstance(access_token, str) or len(access_token) > 4096:
         return None
 
     try:
@@ -35,12 +35,28 @@ def _build_service(access_token: str):
 
 
 def list_upcoming_events(
-    access_token: str, max_results: int = 10, days_ahead: int = 7
+    access_token: str, max_results: Optional[int] = 10, days_ahead: Optional[int] = 7
 ) -> List[Dict[str, Any]]:
     """Return upcoming events from the primary calendar."""
     service = _build_service(access_token)
     if not service:
         return []
+
+    try:
+        if max_results is not None:
+            max_results = max(1, min(int(max_results), 250))
+        else:
+            max_results = 10
+    except (TypeError, ValueError):
+        max_results = 10
+
+    try:
+        if days_ahead is not None:
+            days_ahead = max(1, min(int(days_ahead), 365))
+        else:
+            days_ahead = 7
+    except (TypeError, ValueError):
+        days_ahead = 7
 
     time_min = datetime.now(timezone.utc).isoformat()
     time_max = (datetime.now(timezone.utc) + timedelta(days=days_ahead)).isoformat()
@@ -59,13 +75,16 @@ def list_upcoming_events(
             .execute()
         )
         return result.get("items", [])
-    except HttpError as exc:
+    except Exception as exc:  # pylint: disable=broad-except
         logger.warning("Google Calendar list failed: %s", exc)
         return []
 
 
 def create_event(access_token: str, event_payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Create an event in the user's primary calendar."""
+    if not isinstance(event_payload, dict):
+        return None
+
     service = _build_service(access_token)
     if not service:
         return None
@@ -77,7 +96,7 @@ def create_event(access_token: str, event_payload: Dict[str, Any]) -> Optional[D
             .execute()
         )
         return created
-    except HttpError as exc:
+    except Exception as exc:  # pylint: disable=broad-except
         logger.warning("Google Calendar insert failed: %s", exc)
         return None
 
@@ -186,6 +205,18 @@ def list_upcoming_events_for_user(
     service = get_service_for_user(user_id)
     if service is None:
         return None
+
+    try:
+        if max_results is not None:
+            max_results = max(1, min(int(max_results), 250))
+    except (TypeError, ValueError):
+        max_results = 10
+
+    try:
+        if days_ahead is not None:
+            days_ahead = max(1, min(int(days_ahead), 365))
+    except (TypeError, ValueError):
+        days_ahead = 7
 
     now = datetime.now(timezone.utc)
     query_kwargs: Dict[str, Any] = {
