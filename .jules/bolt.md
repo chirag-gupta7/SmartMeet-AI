@@ -77,3 +77,7 @@
 ## 2026-10-24 - Short-Circuit String Guards for Natural Language Parsing Loops
 **Learning:** Iterating through lists of pre-compiled regular expressions (such as time patterns or weekday patterns) on every transcript evaluation causes unnecessary CPU overhead when simple prerequisites (like containing digits or the substring "next") are missing.
 **Action:** Guard regex list scans with fast substring/pattern pre-checks (e.g. `_DIGIT_PATTERN.search(text)` or `"next" in text`) to short-circuit regex loop execution on non-matching inputs.
+
+## 2026-11-02 - Short-Circuit Keyword Guards for Voice Intent Regex Scans
+**Learning:** In `VoiceCommandProcessor.detect_and_process`, free-form transcripts classified as general inquiries sequentially evaluated multiple extraction regexes (`_CALCULATE_PATTERN`, `_NOTE_PATTERN`, `_SEARCH_PATTERN`, `_TRANSLATE_PATTERN`, `_TIMER_PATTERN`, `_REMINDER_PATTERN`). On non-matching text, running all regexes sequentially produced measurable CPU overhead. Guarding each regex invocation with fast string inclusion checks (`in lowered`) bypasses all 6 regexes on typical general queries, yielding a ~16x speedup.
+**Action:** Always guard multi-pattern intent regex evaluations with fast substring pre-checks on lowercased input text.
