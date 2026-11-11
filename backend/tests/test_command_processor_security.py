@@ -216,3 +216,25 @@ def test_get_weather_redacts_api_key_on_request_exception(monkeypatch):
     assert res["success"] is False
     assert "secret_owm_api_key_12345" not in res["error"]
     assert "[REDACTED]" in res["error"]
+def test_get_news_category_validation():
+    processor = VoiceCommandProcessor()
+
+    # Valid category inputs
+    valid_res = processor.get_news("sports")
+    assert valid_res["success"] is True
+
+    # Oversized category
+    long_category = "C" * 101
+    res = processor.get_news(long_category)
+    assert res["success"] is False
+    assert res["error"] == "Invalid category provided"
+
+    # Malicious or invalid character strings
+    for malicious in [
+        "<script>alert(1)</script>",
+        "sports; DROP TABLE users;",
+        "tech\r\nHeader: injected",
+    ]:
+        res = processor.get_news(malicious)
+        assert res["success"] is False
+        assert res["error"] == "Invalid category provided"
