@@ -209,7 +209,8 @@ const VoiceInput = ({ onTranscript, onProcessing, isProcessing = false, response
               href={authUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-glow transition hover:bg-primary-700"
+              aria-label="Authorize Google Calendar (opens in a new tab)"
+              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-glow transition hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
             >
               Authorize Google Calendar <ArrowRight className="h-4 w-4" />
             </a>
