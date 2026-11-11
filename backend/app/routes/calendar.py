@@ -375,6 +375,18 @@ def create_structured_event():
     except (ValueError, TypeError):
         return jsonify({"success": False, "message": "Invalid end timestamp"}), 400
 
+    derived_duration = int((end_time - start_time).total_seconds() // 60)
+    if derived_duration <= 0 or derived_duration > 1440:
+        return jsonify(
+            {
+                "success": False,
+                "message": (
+                    "end_time must be strictly after start_time and duration"
+                    " between 1 and 1440 minutes"
+                ),
+            }
+        ), 400
+
     extra_data = {
         "location": location,
         "notifications": notifications,
@@ -387,7 +399,7 @@ def create_structured_event():
         title=title,
         description=description,
         start_time=start_time,
-        duration_minutes=int((end_time - start_time).total_seconds() // 60),
+        duration_minutes=derived_duration,
         owner_id=user_id,
         extra_data=extra_data,
     )
