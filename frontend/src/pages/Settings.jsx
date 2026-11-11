@@ -109,6 +109,11 @@ const Settings = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setSearchQuery('');
+                  }
+                }}
                 placeholder="Search synced events…"
                 aria-label="Filter synced events by title"
                 className="w-full rounded-xl border border-ink-900/10 bg-slate-50 py-2 pl-10 pr-10 text-sm text-ink-900 placeholder:text-ink-900/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
