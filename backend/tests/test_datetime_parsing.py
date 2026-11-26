@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from zoneinfo import ZoneInfo
 
-from app.services.datetime_parser import parse_natural_language_datetime
+from app.services.datetime_parser import parse_natural_language_datetime, resolve_timezone
 from app.services.calendar_event_parser import create_event_manual_parse
 
 
@@ -126,3 +126,22 @@ def test_manual_parse_exception_sanitization():
     assert result["message"] == "❌ Failed to create event. Please try again later."
     assert sensitive_detail not in result["error"]
     assert sensitive_detail not in result["message"]
+
+
+def test_parse_natural_language_datetime_oversized_input():
+    oversized_text = "meeting tomorrow " + ("x" * 10000)
+    result = parse_natural_language_datetime(oversized_text, "UTC")
+
+    assert result["success"] is False
+    assert result["error"] == "Input text exceeds maximum allowed length of 10000 characters"
+
+
+def test_resolve_timezone_validation():
+    # Invalid types or oversized strings fall back to UTC
+    for invalid_tz in [None, 123, "a" * 65]:
+        tz = resolve_timezone(invalid_tz)
+        assert tz == ZoneInfo("UTC")
+
+    # Valid timezone name resolves correctly
+    tz_valid = resolve_timezone("America/New_York")
+    assert tz_valid == ZoneInfo("America/New_York")
