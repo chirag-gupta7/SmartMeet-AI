@@ -77,3 +77,7 @@
 ## 2026-10-24 - Short-Circuit String Guards for Natural Language Parsing Loops
 **Learning:** Iterating through lists of pre-compiled regular expressions (such as time patterns or weekday patterns) on every transcript evaluation causes unnecessary CPU overhead when simple prerequisites (like containing digits or the substring "next") are missing.
 **Action:** Guard regex list scans with fast substring/pattern pre-checks (e.g. `_DIGIT_PATTERN.search(text)` or `"next" in text`) to short-circuit regex loop execution on non-matching inputs.
+
+## 2026-11-05 - Memoizing Parsed Tuples vs Raw Strings in LLM Response Caching
+**Learning:** Caching raw LLM response strings in `lru_cache` forces downstream callers to re-execute string sanitization (`replace`), JSON decoding (`json.loads`), and dictionary lookups on every cache hit.
+**Action:** Move JSON parsing into the memoized helper function so that `lru_cache` stores and returns pre-parsed immutable tuples directly, eliminating CPU and allocation overhead on cache hits.
