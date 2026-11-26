@@ -23,7 +23,9 @@ NOT_CONNECTED_ERROR = "Google Calendar not connected. Please connect your Google
 
 def _build_service(access_token: str):
     """Create a Google Calendar service client using a raw access token."""
-    if not access_token:
+    if not isinstance(access_token, str) or not access_token.strip():
+        return None
+    if len(access_token) > 4096:
         return None
 
     try:
@@ -42,8 +44,18 @@ def list_upcoming_events(
     if not service:
         return []
 
+    try:
+        max_results_val = min(max(1, int(max_results)), 250)
+    except (TypeError, ValueError):
+        max_results_val = 10
+
+    try:
+        days_ahead_val = min(max(1, int(days_ahead)), 365)
+    except (TypeError, ValueError):
+        days_ahead_val = 7
+
     time_min = datetime.now(timezone.utc).isoformat()
-    time_max = (datetime.now(timezone.utc) + timedelta(days=days_ahead)).isoformat()
+    time_max = (datetime.now(timezone.utc) + timedelta(days=days_ahead_val)).isoformat()
 
     try:
         result = (
@@ -52,7 +64,7 @@ def list_upcoming_events(
                 calendarId="primary",
                 timeMin=time_min,
                 timeMax=time_max,
-                maxResults=max_results,
+                maxResults=max_results_val,
                 singleEvents=True,
                 orderBy="startTime",
             )
@@ -66,6 +78,8 @@ def list_upcoming_events(
 
 def create_event(access_token: str, event_payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Create an event in the user's primary calendar."""
+    if not isinstance(event_payload, dict):
+        return None
     service = _build_service(access_token)
     if not service:
         return None
@@ -199,9 +213,16 @@ def list_upcoming_events_for_user(
     if time_max:
         query_kwargs["timeMax"] = time_max.isoformat()
     elif days_ahead is not None:
-        query_kwargs["timeMax"] = (now + timedelta(days=days_ahead)).isoformat()
+        try:
+            days_ahead_val = min(max(1, int(days_ahead)), 365)
+        except (TypeError, ValueError):
+            days_ahead_val = 7
+        query_kwargs["timeMax"] = (now + timedelta(days=days_ahead_val)).isoformat()
     if max_results is not None:
-        query_kwargs["maxResults"] = max_results
+        try:
+            query_kwargs["maxResults"] = min(max(1, int(max_results)), 250)
+        except (TypeError, ValueError):
+            query_kwargs["maxResults"] = 10
 
     try:
         result = service.events().list(**query_kwargs).execute()
