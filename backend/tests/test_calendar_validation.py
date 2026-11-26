@@ -215,6 +215,66 @@ def test_create_structured_event_rejects_invalid_notifications(
     assert "50 or fewer" in resp_notif_large.get_json()["message"]
 
 
+def test_create_structured_event_validates_end_timestamp(
+    client, user_factory, auth_headers
+):
+    user = user_factory(email="calvalend@example.com")
+    headers = auth_headers(user.id)
+
+    # end_time before start_time
+    resp_before = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Valid",
+            "start": "2026-09-01T10:00:00",
+            "end": "2026-09-01T09:00:00",
+        },
+        headers=headers,
+    )
+    assert resp_before.status_code == 400
+    assert "strictly after" in resp_before.get_json()["message"]
+
+    # end_time equal to start_time
+    resp_equal = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Valid",
+            "start": "2026-09-01T10:00:00",
+            "end": "2026-09-01T10:00:00",
+        },
+        headers=headers,
+    )
+    assert resp_equal.status_code == 400
+    assert "strictly after" in resp_equal.get_json()["message"]
+
+    # end_time > 24 hours after start_time
+    resp_oversized = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Valid",
+            "start": "2026-09-01T10:00:00",
+            "end": "2026-09-02T11:00:00",
+        },
+        headers=headers,
+    )
+    assert resp_oversized.status_code == 400
+    assert "between 1 and 1440 minutes" in resp_oversized.get_json()["message"]
+
+    # valid end_time
+    resp_valid = client.post(
+        "/api/calendar/events",
+        json={
+            "title": "Valid",
+            "start": "2026-09-01T10:00:00",
+            "end": "2026-09-01T10:30:00",
+        },
+        headers=headers,
+    )
+    assert resp_valid.status_code == 201
+    assert resp_valid.get_json()["success"] is True
+    assert resp_valid.get_json()["event"]["duration_minutes"] == 30
+
+
 def test_calendar_endpoints_accept_valid_inputs(
     client, user_factory, auth_headers
 ):
