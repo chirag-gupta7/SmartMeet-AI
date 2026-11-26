@@ -117,6 +117,8 @@ def _safe_eval(node: ast.expr) -> float:
             right_val = _safe_eval(node.right)
             if abs(right_val) > 1000:
                 raise ValueError("Exponent too large (max 1000)")
+            if abs(right_val) > 1 and abs(left_val) > 10000:
+                raise ValueError("Base too large for exponentiation (max 10000)")
             return left_val ** right_val
         return _SAFE_BIN_OPS[type(node.op)](_safe_eval(node.left), _safe_eval(node.right))
     if isinstance(node, ast.UnaryOp) and type(node.op) in _SAFE_UNARY_OPS:

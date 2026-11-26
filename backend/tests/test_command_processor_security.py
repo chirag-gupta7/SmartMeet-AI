@@ -126,6 +126,25 @@ def test_calculate_validation():
     assert res["error"] == "Expression is too long"
 
 
+def test_calculate_ast_pow_large_base_or_exponent_rejected():
+    processor = VoiceCommandProcessor()
+
+    # Large exponent rejected
+    res_exp = processor.calculate("2 ** 1001")
+    assert res_exp["success"] is False
+    assert "Exponent too large" in res_exp["error"]
+
+    # Large base with exponent > 1 rejected
+    res_base = processor.calculate("10001 ** 2")
+    assert res_base["success"] is False
+    assert "Base too large" in res_base["error"]
+
+    # Valid base and exponent within bounds allowed
+    res_valid = processor.calculate("10000 ** 2")
+    assert res_valid["success"] is True
+    assert res_valid["data"]["result"] == 100000000
+
+
 def test_web_search_validation():
     processor = VoiceCommandProcessor()
 
